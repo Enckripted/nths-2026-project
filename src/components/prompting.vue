@@ -4,7 +4,7 @@
       {{ loading ? 'Generating your plan...' : 'Generate Meal Plan' }}
     </button>
     <p v-if="error" style="color: red">{{ error }}</p>
-    <pre v-if="mealPlan">{{ JSON.stringify(mealPlan, null, 2) }}</pre>
+    <!---<pre v-if="mealPlan">{{ JSON.stringify(mealPlan, null, 2) }}</pre>-->
   </div>
 </template>
 
@@ -26,7 +26,7 @@ async function handleGenerate(): Promise<void> {
     heightCm: 180,
     goal: 'cut',
     activityLevel: 'moderate',
-    cuisinePreferences: ['Italian', 'Mexican', 'Japanese'],
+    cuisinePreferences: ['Italian', 'Chinese', 'Indian'],
     allergies: ['peanuts'],
     cookingTimeMinutes: 30,
     currentIngredients: [

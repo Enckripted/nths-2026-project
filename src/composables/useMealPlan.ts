@@ -9,8 +9,7 @@ const groq = new Groq({
 const MODELS: string[] = [
   'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant',
-  'gemma2-9b-it',
-  'mixtral-8x7b-32768'
+  'groq/compound'
 ]
 
 const mealPlan = ref<any>(null)
@@ -285,6 +284,8 @@ STRICT RULES:
     - Use "salmon" not "salmon fillet"
     - Use "onion" not "yellow onion", "red onion", "diced onion"
 12. NEVER add water to the shopping list.
+13. Minimize token use.
+14. Never repeat a meal name. This is a hard constraint.
 
 CALORIE & MACRO RULES:
 - Use the exact pre-calculated targets from the user message. Do not recalculate.
@@ -296,7 +297,7 @@ CALORIE & MACRO RULES:
 - If a meal is under on protein, increase the protein source quantity — do not leave a meal nutritionally empty.
 
 MEAL VARIETY:
-- All 21 meal names must be completely unique.
+- All 21 meal names MUST be completely unique. Never repeat a meal name.
 - Rotate cuisine preferences evenly across the week — do not front-load.
 - Breakfast should be quick for a weekday. Weekend (Sat/Sun) can be more complex.
 
