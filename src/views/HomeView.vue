@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { RouterLink } from 'vue-router';
+import useAuth from '@/composables/useAuth';
+
+const { user } = useAuth();
 
 const features = [
   {
@@ -35,7 +38,7 @@ const howItWorks = [
   {
     num: '02',
     title: 'Add your ingredients',
-    desc: 'Enter what\'s already in your fridge and pantry. Soon you\'ll be able to scan a receipt too.',
+    desc: "Enter what's already in your fridge and pantry. Soon you'll be able to scan a receipt too.",
     accent: 'bg-amber-300',
     border: 'border-amber-900',
     shadow: 'shadow-[6px_6px_0px_#78350f]',
@@ -83,14 +86,34 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
           </div>
         </h1>
 
-        <!-- Hero CTA -->
-        <div class="mt-16 flex flex-col sm:flex-row gap-4 relative z-10">
-          <RouterLink
-            to="/profile"
-            class="brutalist-btn bg-slate-900 text-stone-50 font-spaceGrotesk font-black uppercase tracking-widest py-4 px-10 text-lg rounded-2xl hover:bg-slate-800 inline-block focus:ring-4 focus:ring-slate-300"
-          >
-            Get Started — Free →
-          </RouterLink>
+        <!-- Hero CTA — changes based on auth state -->
+        <div class="mt-16 flex flex-col sm:flex-row gap-4 relative z-10 items-center">
+          <!-- Guest: Get Started + Sign In -->
+          <template v-if="!user">
+            <RouterLink
+              to="/survey"
+              class="brutalist-btn bg-slate-900 text-stone-50 font-spaceGrotesk font-black uppercase tracking-widest py-4 px-10 text-lg rounded-2xl hover:bg-slate-800 inline-block focus:ring-4 focus:ring-slate-300"
+            >
+              Get Started — Free →
+            </RouterLink>
+            <RouterLink
+              to="/auth"
+              class="brutalist-btn bg-white text-slate-900 font-spaceGrotesk font-black uppercase tracking-widest py-4 px-8 text-lg rounded-2xl hover:bg-stone-100 inline-block focus:ring-4 focus:ring-slate-200 border-2 border-slate-900"
+            >
+              Sign In
+            </RouterLink>
+          </template>
+
+          <!-- Logged in: Go to Dashboard -->
+          <template v-else>
+            <RouterLink
+              to="/dashboard"
+              class="brutalist-btn bg-slate-900 text-stone-50 font-spaceGrotesk font-black uppercase tracking-widest py-4 px-10 text-lg rounded-2xl hover:bg-slate-800 inline-block focus:ring-4 focus:ring-slate-300"
+            >
+              Go to Dashboard →
+            </RouterLink>
+          </template>
+
           <a
             href="#how-it-works"
             class="font-tomorrow font-bold text-slate-600 hover:text-slate-900 transition-colors text-base flex items-center gap-2 px-4"
@@ -143,12 +166,21 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
           <div class="text-content flex-1 max-w-xl" :class="idx % 2 !== 0 ? 'md:order-2' : ''">
             <h3 class="text-stone-50 font-spaceGrotesk font-bold text-5xl lg:text-6xl mb-8 tracking-tight drop-shadow-lg">{{ feat.title }}</h3>
             <p class="text-stone-300 font-tomorrow text-xl lg:text-2xl leading-relaxed mb-12">{{ feat.desc }}</p>
-            <RouterLink
-              to="/profile"
-              class="brutalist-btn bg-emerald-400 text-slate-900 font-spaceGrotesk font-black uppercase tracking-widest py-5 px-10 text-xl md:text-2xl rounded-2xl hover:bg-emerald-300 inline-block focus:ring-4 focus:ring-emerald-200"
-            >
-              Get Started →
-            </RouterLink>
+            <div class="flex gap-4 flex-wrap">
+              <RouterLink
+                :to="user ? '/dashboard' : '/survey'"
+                class="brutalist-btn bg-emerald-400 text-slate-900 font-spaceGrotesk font-black uppercase tracking-widest py-5 px-10 text-xl md:text-2xl rounded-2xl hover:bg-emerald-300 inline-block focus:ring-4 focus:ring-emerald-200"
+              >
+                {{ user ? 'Go to Dashboard →' : 'Get Started →' }}
+              </RouterLink>
+              <RouterLink
+                v-if="!user"
+                to="/auth"
+                class="brutalist-btn bg-white/10 text-stone-50 font-spaceGrotesk font-black uppercase tracking-widest py-5 px-8 text-xl md:text-2xl rounded-2xl hover:bg-white/20 inline-block focus:ring-4 focus:ring-white/20 border-2 border-white/30"
+              >
+                Sign In
+              </RouterLink>
+            </div>
           </div>
 
           <div class="image-content flex-1 w-full max-w-lg relative">
@@ -171,12 +203,21 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
           Answer 5 quick questions and get a full week of meals built around <em>your</em> ingredients, goals, and schedule.
         </p>
       </div>
-      <RouterLink
-        to="/profile"
-        class="brutalist-btn bg-slate-900 text-stone-50 font-spaceGrotesk font-black uppercase tracking-widest py-6 px-12 text-2xl md:text-3xl rounded-2xl hover:bg-slate-800 inline-block shrink-0 focus:ring-4 focus:ring-slate-300"
-      >
-        Start for Free →
-      </RouterLink>
+      <div class="flex flex-col sm:flex-row gap-4">
+        <RouterLink
+          :to="user ? '/dashboard' : '/survey'"
+          class="brutalist-btn bg-slate-900 text-stone-50 font-spaceGrotesk font-black uppercase tracking-widest py-6 px-12 text-2xl md:text-3xl rounded-2xl hover:bg-slate-800 inline-block shrink-0 focus:ring-4 focus:ring-slate-300"
+        >
+          {{ user ? 'Go to Dashboard →' : 'Start for Free →' }}
+        </RouterLink>
+        <RouterLink
+          v-if="!user"
+          to="/auth"
+          class="brutalist-btn bg-white text-slate-900 font-spaceGrotesk font-black uppercase tracking-widest py-6 px-10 text-2xl md:text-3xl rounded-2xl hover:bg-stone-100 inline-block shrink-0 focus:ring-4 focus:ring-slate-200"
+        >
+          Sign In
+        </RouterLink>
+      </div>
     </section>
 
     <!-- ══════════════════ FOOTER ══════════════════ -->

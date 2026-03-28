@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import IngredientList from '@/components/ingredients/IngredientList.vue'
 import Prompting from '@/components/prompting.vue'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { MealPlan } from '@/types/shared.types'
+import { useMealPlan } from '@/composables/useMealPlan'
 
 // ── Date utilities ────────────────────────────────────────────────────────
 const today = new Date()
@@ -69,13 +70,16 @@ const dayColors: Record<string, string> = {
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
+const { mealPlan } = useMealPlan()
+
 const mealData = ref<
   Record<string, Record<string, { name: string; calories?: number; prepTime?: number }>>
 >({})
 const planGenerated = ref(false)
 const showIngredients = ref(false)
 
-function onPlanReady(plan: MealPlan | null): void {
+// Helper to decode a MealPlan object into the calendar grid
+function applyPlanToGrid(plan: MealPlan | null): void {
   if (!plan?.weeklyPlan) return
   for (const dayObj of plan.weeklyPlan) {
     const key = dayObj.day?.toUpperCase()
@@ -99,6 +103,16 @@ function onPlanReady(plan: MealPlan | null): void {
     }
   }
   planGenerated.value = true
+}
+
+// Auto-populate calendar whenever the shared mealPlan ref is set
+// (either from Supabase hydration on boot or from a fresh generation)
+watch(mealPlan, (plan) => {
+  applyPlanToGrid(plan)
+}, { immediate: true })
+
+function onPlanReady(plan: MealPlan | null): void {
+  applyPlanToGrid(plan)
 }
 
 function onPlanError(message: string): void {
