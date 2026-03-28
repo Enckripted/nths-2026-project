@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
-import  Prompting from './components/Prompting.vue'
+import Prompting from './components/prompting.vue';
+
 
 </script>
 
@@ -15,7 +15,7 @@ import  Prompting from './components/Prompting.vue'
       <nav>
         <RouterLink to="/" class="nav-link">Home</RouterLink>
       </nav>
-      <Prompting />
+      <Prompting/>
     </div>
   </header>
 
