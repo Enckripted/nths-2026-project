@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteMeta } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import useDataStore from '@/composables/useDataStore'
@@ -32,7 +32,9 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  if (to.name != 'profile' && to.name != 'home' && firstUse.value) return { name: 'profile' }
+  const meta: RouteMeta = to.meta
+  if (firstUse.value && meta.requiresAuth) return { name: 'profile' }
+  return true
 })
 
 export default router
