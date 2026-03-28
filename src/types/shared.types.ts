@@ -6,14 +6,59 @@ interface Ingredient {
 
 interface Profile {
   gender: string
-  weight: number
-  height: number
+  weightLbs: number
+  heightFt: number
+  heightIn: number
   desiredWeightDirection: string
-  activityLevel: number
+  activityLevel: string
   minutesForCooking: number
+  age: number
   cuisineFavorites: string[]
   strongDislikes: string[]
   allergies: string[]
+}
+
+interface Meal {
+  name: string
+  cuisine: string
+  prepTimeMinutes: number
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  ingredients: Ingredient[]
+  usesCurrentIngredients: Ingredient[]
+  instructions: string[]
+}
+
+interface DayPlan {
+  day: string
+  breakfast: Meal
+  lunch: Meal
+  dinner: Meal
+  totalCalories: number
+  totalProtein: number
+  totalCarbs: number
+  totalFat: number
+}
+
+interface ShoppingList {
+  produce: Ingredient[]
+  proteins: Ingredient[]
+  dairy: Ingredient[]
+  grains: Ingredient[]
+  pantry: Ingredient[]
+  other: Ingredient[]
+}
+
+interface MealPlan {
+  dailyCalorieTarget: number
+  dailyProteinTarget: number
+  dailyCarbTarget: number
+  dailyFatTarget: number
+  weeklyPlan: DayPlan[]
+  shoppingList: ShoppingList
+  notes: string
 }
 
 interface LocalStorageData {
@@ -21,4 +66,4 @@ interface LocalStorageData {
   profile: Profile
 }
 
-export type { Ingredient, Profile, LocalStorageData }
+export type { Ingredient, Profile, LocalStorageData, Meal, DayPlan, MealPlan, ShoppingList }
