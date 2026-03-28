@@ -1,29 +1,71 @@
 <script setup lang="ts">
+import { computed, ref, toRaw } from 'vue'
 import useUserProfile from '@/composables/useUserProfile'
 import StringList from '@/components/StringList.vue'
-import { ref } from 'vue'
+import useDataStore from '@/composables/useDataStore'
 
-const profile = useUserProfile()
-/*
+const { profile } = useUserProfile()
+const { saveProfileData } = useDataStore()
+
+//to make sure their changes don't immediately apply...
+//may be a better way to do this?
+const tempProfile = ref(structuredClone(toRaw(profile.value)))
+
+const gender = computed({
+  get: () => tempProfile.value.gender,
+  set: (value) => (tempProfile.value.gender = value),
+})
+
+const weight = computed({
+  get: () => tempProfile.value.weight,
+  set: (value) => (tempProfile.value.weight = value),
+})
+
+const height = computed({
+  get: () => tempProfile.value.height,
+  set: (value) => (tempProfile.value.height = value),
+})
+
+const desiredWeightDirection = computed({
+  get: () => tempProfile.value.desiredWeightDirection,
+  set: (value) => (tempProfile.value.desiredWeightDirection = value),
+})
+
+const activityLevel = computed({
+  get: () => tempProfile.value.activityLevel,
+  set: (value) => (tempProfile.value.activityLevel = value),
+})
+
+const minutesForCooking = computed({
+  get: () => tempProfile.value.minutesForCooking,
+  set: (value) => (tempProfile.value.minutesForCooking = value),
+})
+
 const cuisineFavorites = computed({
-  get: () => profile.cuisineFavorites.value || [],
-  set: (value) => profile.cuisineFavorites.value = value
+  get: () => tempProfile.value.cuisineFavorites,
+  set: (value) => (tempProfile.value.cuisineFavorites = value),
 })
 
 const strongDislikes = computed({
-  get: () => profile.strongDislikes.value || [],
-  set: (value) => profile.strongDislikes.value = value
+  get: () => tempProfile.value.strongDislikes,
+  set: (value) => (tempProfile.value.strongDislikes = value),
 })
 
 const allergies = computed({
-  get: () => profile.allergies.value || [],
-  set: (value) => profile.allergies.value = value
-})*/
+  get: () => tempProfile.value.allergies,
+  set: (value) => (tempProfile.value.allergies = value),
+})
+
+function validateInputs() {
+  return true
+}
 
 const saveProfile = () => {
-  // The data is already reactive and updated in real-time
-  // You could add validation or save to localStorage/API here if needed
-  console.log('Profile saved:', profile)
+  if (!validateInputs()) {
+    return //TODO: do some extra stuff to show a message here or something
+  }
+  profile.value = tempProfile.value
+  saveProfileData()
 }
 </script>
 <template>
@@ -34,7 +76,7 @@ const saveProfile = () => {
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
         <select
-          v-model="profile.gender"
+          v-model="gender"
           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">Select Gender</option>
@@ -48,7 +90,7 @@ const saveProfile = () => {
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
         <input
-          v-model.number="profile.weight"
+          v-model.number="weight"
           type="number"
           min="0"
           step="0.1"
@@ -60,7 +102,7 @@ const saveProfile = () => {
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Height (cm)</label>
         <input
-          v-model.number="profile.height"
+          v-model.number="height"
           type="number"
           min="0"
           step="0.1"
@@ -72,7 +114,7 @@ const saveProfile = () => {
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Desired Weight Direction</label>
         <select
-          v-model="profile.desiredWeightDirection"
+          v-model="desiredWeightDirection"
           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">Select Direction</option>
@@ -86,7 +128,7 @@ const saveProfile = () => {
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Activity Level (1-10)</label>
         <input
-          v-model.number="profile.activityLevel"
+          v-model.number="activityLevel"
           type="number"
           min="1"
           max="10"
@@ -98,7 +140,7 @@ const saveProfile = () => {
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Minutes for Cooking</label>
         <input
-          v-model.number="profile.minutesForCooking"
+          v-model.number="minutesForCooking"
           type="number"
           min="0"
           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -107,20 +149,16 @@ const saveProfile = () => {
 
       <!-- Cuisine Favorites -->
       <StringList
-        v-model="profile.cuisineFavorites.value"
+        v-model="cuisineFavorites"
         label="Cuisine Favorites"
         placeholder="e.g., Italian"
       />
 
       <!-- Strong Dislikes -->
-      <StringList
-        v-model="profile.strongDislikes.value"
-        label="Strong Dislikes"
-        placeholder="e.g., Spicy food"
-      />
+      <StringList v-model="strongDislikes" label="Strong Dislikes" placeholder="e.g., Spicy food" />
 
       <!-- Allergies -->
-      <StringList v-model="profile.allergies.value" label="Allergies" placeholder="e.g., Nuts" />
+      <StringList v-model="allergies" label="Allergies" placeholder="e.g., Nuts" />
 
       <!-- Save Button -->
       <button
