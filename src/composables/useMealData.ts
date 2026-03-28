@@ -1,7 +1,7 @@
-//import type { MealDay } from '@/types/shared.types'
+import type { MealPlan } from '@/types/shared.types'
 import { ref } from 'vue'
 
-const mealData = ref([])
+const mealPlan: MealPlan = ref([])
 
 function parseMealJson(mealJsonStr: string) {
   const mealRes = []
@@ -18,13 +18,13 @@ function parseMealJson(mealJsonStr: string) {
   }
 
   console.log('Parsed data: ')
-  console.log(mealData)
-  //mealData.value = mealRes
+  console.log(mealPlan)
+  //mealPlan.value = mealRes
 }
 
 export default function useMealData() {
   return {
-    mealData,
+    mealPlan,
     parseMealJson,
   }
 }
