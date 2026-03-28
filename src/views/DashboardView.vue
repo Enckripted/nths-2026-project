@@ -4,7 +4,6 @@ import Prompting from '@/components/prompting.vue'
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { MealPlan } from '@/types/shared.types'
-import useMealData from '@/composables/useMealData'
 
 // ── Date utilities ────────────────────────────────────────────────────────
 const today = new Date()
