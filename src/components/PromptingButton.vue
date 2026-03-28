@@ -9,8 +9,12 @@
 </template>
 
 <script setup lang="ts">
+import { useIngredients } from '@/composables/useIngredientList'
 import { useMealPlan } from '@/composables/useMealPlan'
+import useUserProfile from '@/composables/useUserProfile'
 
+const { profile } = useUserProfile()
+const { ingredients } = useIngredients()
 const { mealPlan, loading, error, generateMealPlan } = useMealPlan()
 
 const emit = defineEmits<{
@@ -19,7 +23,9 @@ const emit = defineEmits<{
 }>()
 
 async function handleGenerate(): Promise<void> {
-  await generateMealPlan({
+  console.log(profile.value)
+  await generateMealPlan(profile.value, ingredients.value)
+  /*await generateMealPlan({
     gender: 'male',
     age: 28,
     weightKg: 85,
@@ -40,7 +46,7 @@ async function handleGenerate(): Promise<void> {
       { name: 'soy sauce', quantity: 200, unit: 'ml' },
       { name: 'oats', quantity: 500, unit: 'g' },
     ],
-  })
+  })*/
 
   if (mealPlan.value) emit('success', mealPlan.value)
   if (error.value) emit('error', error.value)

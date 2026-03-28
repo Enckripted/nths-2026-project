@@ -2,17 +2,14 @@ import { ref } from 'vue'
 import Groq from 'groq-sdk'
 import { supabase } from '@/lib/supabaseClient'
 import { getUserId } from './useDataStore'
+import type { Ingredient } from '@/types/shared.types'
 
 const groq = new Groq({
   apiKey: import.meta.env.VITE_GROQ_API_KEY ?? '',
-  dangerouslyAllowBrowser: true
+  dangerouslyAllowBrowser: true,
 })
 
-const MODELS: string[] = [
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'groq/compound'
-]
+const MODELS: string[] = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'groq/compound']
 
 const mealPlan = ref<any>(null)
 const loading = ref<boolean>(false)
@@ -31,9 +28,9 @@ const INGREDIENT_ALIASES: Record<string, string> = {
   'fried eggs': 'eggs',
   'poached eggs': 'eggs',
   'boiled eggs': 'eggs',
-  'egg': 'eggs',
+  egg: 'eggs',
   // chicken
-  'chicken': 'chicken breast',
+  chicken: 'chicken breast',
   'chicken thigh': 'chicken breast',
   'grilled chicken': 'chicken breast',
   'shredded chicken': 'chicken breast',
@@ -41,7 +38,7 @@ const INGREDIENT_ALIASES: Record<string, string> = {
   'ground beef': 'beef',
   'beef strips': 'beef',
   'beef steak': 'beef',
-  'steak': 'beef',
+  steak: 'beef',
   'minced beef': 'beef',
   // salmon
   'salmon fillet': 'salmon',
@@ -58,11 +55,11 @@ const INGREDIENT_ALIASES: Record<string, string> = {
   // oats
   'rolled oats': 'oats',
   'instant oats': 'oats',
-  'oatmeal': 'oats',
+  oatmeal: 'oats',
   // olive oil
   'olive oil spray': 'olive oil',
   'cooking oil': 'olive oil',
-  'oil': 'olive oil',
+  oil: 'olive oil',
   // canned tomatoes
   'canned tomato': 'canned tomatoes',
   'tomato can': 'canned tomatoes',
@@ -97,13 +94,17 @@ function calculateTargets(profile: any): {
     light: 1.375,
     moderate: 1.55,
     active: 1.725,
-    very_active: 1.9
+    very_active: 1.9,
   }
+
+  // Convert lbs to kg and feet+inches to cm
+  const weightKg = profile.weightLbs / 2.20462
+  const heightCm = (profile.heightFt * 12 + profile.heightIn) * 2.54
 
   const base =
     profile.gender === 'male'
-      ? 10 * profile.weightKg + 6.25 * profile.heightCm - 5 * profile.age + 5
-      : 10 * profile.weightKg + 6.25 * profile.heightCm - 5 * profile.age - 161
+      ? 10 * weightKg + 6.25 * heightCm - 5 * profile.age + 5
+      : 10 * weightKg + 6.25 * heightCm - 5 * profile.age - 161
 
   const tdee = base * (activityMultiplier[profile.activityLevel] ?? 1.55)
 
@@ -111,7 +112,7 @@ function calculateTargets(profile: any): {
   const calories = Math.round(tdee + (goalAdjustment[profile.goal] ?? 0))
 
   const proteinPerKg: Record<string, number> = { cut: 2.2, bulk: 1.8, maintain: 1.6 }
-  const protein = Math.round((proteinPerKg[profile.goal] ?? 1.6) * profile.weightKg)
+  const protein = Math.round((proteinPerKg[profile.goal] ?? 1.6) * weightKg)
 
   const fat = Math.round((calories * 0.25) / 9)
   const carbs = Math.round((calories - protein * 4 - fat * 9) / 4)
@@ -126,20 +127,45 @@ function normalizeIngredient(i: any): { name: string; quantity: number; unit: st
   let quantity = i.quantity
   let unit = i.unit
 
-  if (unit === 'kg')                     { quantity = quantity * 1000;              unit = 'g'      }
-  else if (unit === 'L' || unit === 'l') { quantity = quantity * 1000;              unit = 'ml'     }
-  else if (unit === 'lb')                { quantity = Math.round(quantity * 453.6); unit = 'g'      }
-  else if (unit === 'oz')                { quantity = Math.round(quantity * 28.35); unit = 'g'      }
-  else if (unit === 'fl_oz')             { quantity = Math.round(quantity * 29.57); unit = 'ml'     }
-  else if (unit === 'cup')               { quantity = Math.round(quantity * 240);   unit = 'ml'     }
-  else if (unit === 'tbsp')              { quantity = Math.round(quantity * 15);    unit = 'ml'     }
-  else if (unit === 'tsp')               { quantity = Math.round(quantity * 5);     unit = 'ml'     }
+  if (unit === 'kg') {
+    quantity = quantity * 1000
+    unit = 'g'
+  } else if (unit === 'L' || unit === 'l') {
+    quantity = quantity * 1000
+    unit = 'ml'
+  } else if (unit === 'lb') {
+    quantity = Math.round(quantity * 453.6)
+    unit = 'g'
+  } else if (unit === 'oz') {
+    quantity = Math.round(quantity * 28.35)
+    unit = 'g'
+  } else if (unit === 'fl_oz') {
+    quantity = Math.round(quantity * 29.57)
+    unit = 'ml'
+  } else if (unit === 'cup') {
+    quantity = Math.round(quantity * 240)
+    unit = 'ml'
+  } else if (unit === 'tbsp') {
+    quantity = Math.round(quantity * 15)
+    unit = 'ml'
+  } else if (unit === 'tsp') {
+    quantity = Math.round(quantity * 5)
+    unit = 'ml'
+  }
   // A garlic bulb has ~10 cloves — normalise so pantry quantity is comparable
-  else if (unit === 'bulb')              { quantity = quantity * 10;                unit = 'pieces' }
+  else if (unit === 'bulb') {
+    quantity = quantity * 10
+    unit = 'pieces'
+  }
   // cans: keep as pieces so count comparisons work
-  else if (unit === 'cans' || unit === 'can') { unit = 'pieces' }
+  else if (unit === 'cans' || unit === 'can') {
+    unit = 'pieces'
+  }
   // Any other non-standard unit → 1 piece
-  else if (!['g', 'ml', 'pieces'].includes(unit)) { quantity = 1; unit = 'pieces' }
+  else if (!['g', 'ml', 'pieces'].includes(unit)) {
+    quantity = 1
+    unit = 'pieces'
+  }
 
   // Resolve aliases so pantry keys are always canonical
   const name = resolveIngredientName(i.name)
@@ -151,10 +177,10 @@ function normalizeIngredient(i: any): { name: string; quantity: number; unit: st
 // Discards the model's shopping list and rebuilds it from scratch by tallying
 // actual meal ingredient usage vs what the user has at home.
 // ---------------------------------------------------------------------------
-function validateAndPatchPlan(plan: any, profile: any): any {
+function validateAndPatchPlan(plan: any, profile: any, ingredients: Ingredient[]): any {
   // Build normalized pantry map: canonical name → { quantity, unit }
   const pantry = new Map<string, { quantity: number; unit: string }>()
-  for (const ing of profile.currentIngredients.map(normalizeIngredient)) {
+  for (const ing of ingredients.map(normalizeIngredient)) {
     pantry.set(ing.name, { quantity: ing.quantity, unit: ing.unit })
   }
 
@@ -185,30 +211,106 @@ function validateAndPatchPlan(plan: any, profile: any): any {
   // Category lookup — proteins checked first to avoid partial-match collisions
   const categoryMap: Record<string, string[]> = {
     proteins: [
-      'chicken breast', 'chicken', 'beef', 'steak', 'pork', 'shrimp',
-      'salmon', 'tuna', 'turkey', 'lamb', 'eggs', 'tofu', 'tempeh', 'sausage'
+      'chicken breast',
+      'chicken',
+      'beef',
+      'steak',
+      'pork',
+      'shrimp',
+      'salmon',
+      'tuna',
+      'turkey',
+      'lamb',
+      'eggs',
+      'tofu',
+      'tempeh',
+      'sausage',
     ],
     produce: [
-      'bell pepper', 'carrot', 'onion', 'tomato', 'potato', 'sweet potato',
-      'zucchini', 'cucumber', 'broccoli', 'cauliflower', 'mushroom', 'garlic',
-      'spinach', 'romaine lettuce', 'lettuce', 'kale', 'corn', 'banana', 'apple',
-      'orange', 'lemon', 'lime', 'mango', 'avocado', 'peach', 'pear', 'plum', 'kiwi'
+      'bell pepper',
+      'carrot',
+      'onion',
+      'tomato',
+      'potato',
+      'sweet potato',
+      'zucchini',
+      'cucumber',
+      'broccoli',
+      'cauliflower',
+      'mushroom',
+      'garlic',
+      'spinach',
+      'romaine lettuce',
+      'lettuce',
+      'kale',
+      'corn',
+      'banana',
+      'apple',
+      'orange',
+      'lemon',
+      'lime',
+      'mango',
+      'avocado',
+      'peach',
+      'pear',
+      'plum',
+      'kiwi',
     ],
     dairy: [
-      'milk', 'cheese', 'yogurt', 'butter', 'sour cream', 'cream',
-      'mozzarella', 'parmesan', 'parmesan cheese', 'cheddar', 'cream cheese'
+      'milk',
+      'cheese',
+      'yogurt',
+      'butter',
+      'sour cream',
+      'cream',
+      'mozzarella',
+      'parmesan',
+      'parmesan cheese',
+      'cheddar',
+      'cream cheese',
     ],
     grains: [
-      'rice', 'oats', 'tortilla', 'tortillas', 'bread', 'pasta', 'noodles',
-      'udon noodles', 'ramen noodles', 'flour', 'quinoa', 'couscous',
-      'wrap', 'pita', 'breadcrumbs', 'english muffin', 'croutons'
+      'rice',
+      'oats',
+      'tortilla',
+      'tortillas',
+      'bread',
+      'pasta',
+      'noodles',
+      'udon noodles',
+      'ramen noodles',
+      'flour',
+      'quinoa',
+      'couscous',
+      'wrap',
+      'pita',
+      'breadcrumbs',
+      'english muffin',
+      'croutons',
     ],
     pantry: [
-      'olive oil', 'soy sauce', 'canned tomatoes', 'tomato sauce', 'marinara sauce',
-      'honey', 'sugar', 'salt', 'pepper', 'vinegar', 'hot sauce', 'salsa',
-      'caesar dressing', 'dressing', 'mayonnaise', 'ketchup', 'mustard',
-      'coconut milk', 'broth', 'stock', 'bouillon'
-    ]
+      'olive oil',
+      'soy sauce',
+      'canned tomatoes',
+      'tomato sauce',
+      'marinara sauce',
+      'honey',
+      'sugar',
+      'salt',
+      'pepper',
+      'vinegar',
+      'hot sauce',
+      'salsa',
+      'caesar dressing',
+      'dressing',
+      'mayonnaise',
+      'ketchup',
+      'mustard',
+      'coconut milk',
+      'broth',
+      'stock',
+      'bouillon',
+    ],
   }
 
   const categoryOf = (name: string): string => {
@@ -218,14 +320,19 @@ function validateAndPatchPlan(plan: any, profile: any): any {
       if (items.includes(lower)) return cat
     }
     for (const [cat, items] of Object.entries(categoryMap)) {
-      if (items.some(item => lower.includes(item))) return cat
+      if (items.some((item) => lower.includes(item))) return cat
     }
     return 'other'
   }
 
   // Rebuild shopping list from scratch
   const newShoppingList: Record<string, any[]> = {
-    produce: [], proteins: [], dairy: [], grains: [], pantry: [], other: []
+    produce: [],
+    proteins: [],
+    dairy: [],
+    grains: [],
+    pantry: [],
+    other: [],
   }
 
   for (const [name, used] of totalUsed.entries()) {
@@ -234,14 +341,16 @@ function validateAndPatchPlan(plan: any, profile: any): any {
     const atHome = pantry.get(name)?.quantity ?? 0
     const shortfall = used.quantity - atHome
 
-    console.log(`[shopping] ${name}: used=${used.quantity}, atHome=${atHome}, shortfall=${shortfall}`)
+    console.log(
+      `[shopping] ${name}: used=${used.quantity}, atHome=${atHome}, shortfall=${shortfall}`,
+    )
 
     if (shortfall > 0) {
       const cat = categoryOf(name)
       newShoppingList[cat]?.push({
         name,
         quantity: Math.ceil(shortfall),
-        unit: used.unit
+        unit: used.unit,
       })
     }
   }
@@ -309,39 +418,43 @@ SHOPPING LIST:
 - Every shopping list item must be an object: { "name": string, "quantity": number, "unit": string }.`
 }
 
-function buildUserPrompt(profile: any, targets: ReturnType<typeof calculateTargets>): string {
+function buildUserPrompt(
+  profile: any,
+  ingredients: Ingredient[],
+  targets: ReturnType<typeof calculateTargets>,
+): string {
   const activityLabel: Record<string, string> = {
     sedentary: 'Sedentary (desk job, little to no exercise)',
     light: 'Light (light exercise 1-3 days/week)',
     moderate: 'Moderate (moderate exercise 3-5 days/week)',
     active: 'Active (hard exercise 6-7 days/week)',
-    very_active: 'Very Active (physical job + hard exercise daily)'
+    very_active: 'Very Active (physical job + hard exercise daily)',
   }
 
   const goalLabel: Record<string, string> = {
     cut: 'Cut (lose fat)',
     bulk: 'Bulk (gain muscle)',
-    maintain: 'Maintain current weight'
+    maintain: 'Maintain current weight',
   }
 
-  const normalizedIngredients = profile.currentIngredients.map(normalizeIngredient)
+  const normalizedIngredients = ingredients.map(normalizeIngredient)
 
   // Per-meal hard targets injected as explicit numbers
   const breakfastCals = Math.round(targets.calories * 0.27)
-  const lunchCals     = Math.round(targets.calories * 0.33)
-  const dinnerCals    = Math.round(targets.calories * 0.40)
+  const lunchCals = Math.round(targets.calories * 0.33)
+  const dinnerCals = Math.round(targets.calories * 0.4)
   const breakfastProt = Math.round(targets.protein * 0.25)
-  const lunchProt     = Math.round(targets.protein * 0.35)
-  const dinnerProt    = Math.round(targets.protein * 0.40)
+  const lunchProt = Math.round(targets.protein * 0.35)
+  const dinnerProt = Math.round(targets.protein * 0.4)
 
   return `Generate a 7-day meal plan for this user:
 
 --- PROFILE ---
 Gender: ${profile.gender}
 Age: ${profile.age} years old
-Weight: ${profile.weightKg} kg
-Height: ${profile.heightCm} cm
-Goal: ${goalLabel[profile.goal]}
+Weight: ${profile.weightLbs} Kg
+Height: ${profile.heightFt} ft ${profile.heightIn} in
+Goal: ${profile.desiredWeightDirection}
 Activity level: ${activityLabel[profile.activityLevel]}
 
 --- HARD NUTRITION TARGETS (use exactly — do not recalculate) ---
@@ -356,14 +469,16 @@ Per-meal targets — stay as close as possible and never exceed the MAX:
 - Dinner:    ~${dinnerCals} kcal / ~${dinnerProt}g protein  (MAX: 1050 kcal)
 
 --- FOOD PREFERENCES ---
-Cuisine preferences: ${profile.cuisinePreferences.length > 0 ? profile.cuisinePreferences.join(', ') : 'No preference — suggest a variety'}
+Cuisine preferences: ${profile.cuisineFavorites.length > 0 ? profile.cuisineFavorites.join(', ') : 'No preference — suggest a variety'}
 Allergies / restrictions: ${profile.allergies.length > 0 ? profile.allergies.join(', ') : 'None'}
 Max cooking time per meal: ${profile.cookingTimeMinutes} minutes
 
 --- INGREDIENTS ALREADY AT HOME ---
-${normalizedIngredients.length > 0
-      ? normalizedIngredients.map((i: any) => `- ${i.quantity} ${i.unit} of ${i.name}`).join('\n')
-      : 'None — assume pantry is empty'}
+${
+  normalizedIngredients.length > 0
+    ? normalizedIngredients.map((i: any) => `- ${i.quantity} ${i.unit} of ${i.name}`).join('\n')
+    : 'None — assume pantry is empty'
+}
 
 --- INSTRUCTIONS ---
 1. Use the exact daily targets above — do not recalculate them.
@@ -445,76 +560,85 @@ The weeklyPlan array must contain exactly 7 objects: Monday through Sunday in or
 // Composable
 // ---------------------------------------------------------------------------
 export function useMealPlan() {
-  async function generateMealPlan(profile: any): Promise<void> {
+  async function generateMealPlan(profile: any, ingredients: Ingredient[]): Promise<void> {
     loading.value = true
     error.value = null
     mealPlan.value = null
 
-    const targets = calculateTargets(profile)
+    try {
+      console.log(profile)
+      const targets = calculateTargets(profile)
 
-    for (let attempts = 0; attempts < MODELS.length; attempts++) {
-      const model = MODELS[attempts]
-      activeModel.value = model ?? ''
+      for (let attempts = 0; attempts < MODELS.length; attempts++) {
+        const model = MODELS[attempts]
+        activeModel.value = model ?? ''
 
-      console.log(`Trying model (${attempts + 1}/${MODELS.length}): ${model}`)
+        console.log(`Trying model (${attempts + 1}/${MODELS.length}): ${model}`)
 
-      try {
-        const result = await groq.chat.completions.create({
-          model: model as string,
-          temperature: 0.7,
-          max_tokens: 8000,
-          messages: [
-            { role: 'system', content: buildSystemPrompt() },
-            { role: 'user', content: buildUserPrompt(profile, targets) }
-          ]
-        })
-
-        const raw = result.choices[0]?.message?.content ?? ''
-        const cleaned = raw.replace(/```json|```/g, '').trim()
-        const parsed = JSON.parse(cleaned)
-
-        console.log('[debug] profile.currentIngredients:', JSON.stringify(profile.currentIngredients))
-        console.log('[debug] parsed weeklyPlan days:', parsed.weeklyPlan?.length)
-
-        // Always rebuild the shopping list client-side — never trust model output
-        mealPlan.value = validateAndPatchPlan(parsed, profile)
-        loading.value = false
-        
-        // Save generated plan to Supabase
-        const userId = await getUserId()
-        if (userId) {
-          supabase.from('data').update({ meal_plan: mealPlan.value, updated_at: new Date().toISOString() }).eq('id', userId).then(({error}) => {
-            if (error) console.error("Error saving meal plan to Supabase:", error)
+        try {
+          console.log(buildUserPrompt(profile, ingredients, targets))
+          const result = await groq.chat.completions.create({
+            model: model as string,
+            temperature: 0.7,
+            max_tokens: 8000,
+            messages: [
+              { role: 'system', content: buildSystemPrompt() },
+              { role: 'user', content: buildUserPrompt(profile, ingredients, targets) },
+            ],
           })
-        }
-        
-        return
 
-      } catch (err: any) {
-        if (err?.status === 429) {
-          console.warn(`Model ${model} is rate limited, trying next...`)
-          continue
-        }
+          const raw = result.choices[0]?.message?.content ?? ''
+          const cleaned = raw.replace(/```json|```/g, '').trim()
+          const parsed = JSON.parse(cleaned)
 
-        if (err instanceof SyntaxError) {
-          error.value = 'Failed to parse meal plan — try generating again.'
-        } else {
-          error.value = err instanceof Error ? err.message : 'Unknown error'
-        }
+          console.log('[debug] profile.currentIngredients:', JSON.stringify(ingredients))
+          console.log('[debug] parsed weeklyPlan days:', parsed.weeklyPlan?.length)
 
-        loading.value = false
-        return
+          // Always rebuild the shopping list client-side — never trust model output
+          mealPlan.value = validateAndPatchPlan(parsed, profile, ingredients)
+
+          // Save generated plan to Supabase
+          const userId = await getUserId()
+          if (userId) {
+            supabase
+              .from('data')
+              .update({ meal_plan: mealPlan.value, updated_at: new Date().toISOString() })
+              .eq('id', userId)
+              .then(({ error }) => {
+                if (error) console.error('Error saving meal plan to Supabase:', error)
+              })
+          }
+
+          return
+        } catch (err: any) {
+          if (err?.status === 429) {
+            console.warn(`Model ${model} is rate limited, trying next...`)
+            continue
+          }
+
+          if (err instanceof SyntaxError) {
+            error.value = 'Failed to parse meal plan — try generating again.'
+          } else {
+            error.value = err instanceof Error ? err.message : 'Unknown error'
+          }
+
+          return
+        }
       }
-    }
 
-    error.value = 'All models are currently rate limited — please wait a few minutes and try again.'
-    loading.value = false
+      error.value =
+        'All models are currently rate limited — please wait a few minutes and try again.'
+    } catch (err: any) {
+      error.value = err instanceof Error ? err.message : 'Failed to generate meal plan'
+    } finally {
+      loading.value = false
+    }
   }
 
   async function clearPlan(): Promise<void> {
     mealPlan.value = null
     error.value = null
-    
+
     // Clear from Supabase as well
     const userId = await getUserId()
     if (userId) {
@@ -524,7 +648,7 @@ export function useMealPlan() {
 
   // Hydrate meal plan from Supabase on initial load if it exists
   const hydratePlan = async () => {
-    if (mealPlan.value) return;
+    if (mealPlan.value) return
     try {
       const userId = await getUserId()
       if (!userId) return
@@ -537,7 +661,7 @@ export function useMealPlan() {
       // Ignore initial load errors
     }
   }
-  
+
   if (!mealPlan.value) {
     hydratePlan()
   }
