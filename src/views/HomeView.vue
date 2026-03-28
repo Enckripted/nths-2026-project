@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import IngredientList from '@/components/ingredients/IngredientList.vue'
 </script>
 
 <template>
   <main class="home-page">
     <div class="content">
-      <h1 class="gradient-text">Welcome to your new project</h1>
-      <p>A clean, minimal starting point for your next big idea.</p>
+      <IngredientList />
     </div>
   </main>
 </template>
