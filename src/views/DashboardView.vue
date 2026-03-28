@@ -135,12 +135,12 @@ function onPlanError(message: string): void {
             {{ showIngredients ? '▲ Hide' : '▼ Ingredients' }}
           </button>
 
-          <RouterLink
+          <!--<RouterLink
             to="/profile"
             class="brutalist-btn bg-white/20 hover:bg-white/40 text-stone-50 font-spaceGrotesk font-black uppercase tracking-wider text-sm px-5 py-2.5 rounded-xl transition-all"
           >
             ✏️ Profile
-          </RouterLink>
+          </RouterLink>-->
 
           <PromptingButton
             class="brutalist-btn bg-amber-300 hover:bg-amber-200 text-slate-900 rounded-xl font-spaceGrotesk font-black text-sm uppercase tracking-widest cursor-pointer py-2.5 px-6 focus:ring-4 focus:ring-amber-100"
