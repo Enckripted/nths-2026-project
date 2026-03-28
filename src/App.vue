@@ -15,7 +15,7 @@ import Prompting from './components/prompting.vue';
       <nav>
         <RouterLink to="/" class="nav-link">Home</RouterLink>
       </nav>
-      <Prompting/>
+      
     </div>
   </header>
 

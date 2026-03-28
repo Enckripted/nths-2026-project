@@ -1,13 +1,35 @@
 <script setup lang="ts">
 import IngredientList from '@/components/ingredients/IngredientList.vue'
 import Prompting from '@/components/prompting.vue';
+
+function onPlanReady(plan: any): void {
+  console.log('Meal plan received:', plan)
+  // later this will route to the dashboard with the plan
+}
+
+function onPlanError(message: string): void {
+  console.error('Meal plan error:', message)
+}
 </script>
 
 <template>
   <main class="home-page">
     <div class="content">
       <IngredientList />
-      <Prompting/>
+      <Prompting
+  gender="male"
+  :age="28"
+  :weightKg="85"
+  :heightCm="180"
+  goal="cut"
+  activityLevel="moderate"
+  :cuisinePreferences="['Italian', 'Mexican']"
+  :allergies="['peanuts']"
+  :cookingTimeMinutes="30"
+  :currentIngredients="['eggs', 'rice', 'chicken breast']"
+  @success="onPlanReady"
+  @error="onPlanError"
+/>
     </div>
   </main>
 </template>
