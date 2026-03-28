@@ -24,6 +24,7 @@ import  Prompting from './components/Prompting.vue'
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
 
 :root {
   --primary: #6366f1;
