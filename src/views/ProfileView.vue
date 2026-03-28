@@ -3,6 +3,7 @@ import { computed, ref, toRaw } from 'vue'
 import useUserProfile from '@/composables/useUserProfile'
 import StringList from '@/components/StringList.vue'
 import useDataStore from '@/composables/useDataStore'
+import router from '@/router'
 
 const { profile } = useUserProfile()
 const { saveProfileData } = useDataStore()
@@ -66,6 +67,9 @@ const saveProfile = () => {
   }
   profile.value = tempProfile.value
   saveProfileData()
+
+  //TODO: DON'T HARDCODE THIS
+  router.push('/dashboard')
 }
 </script>
 <template>
