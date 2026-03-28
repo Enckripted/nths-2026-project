@@ -1,5 +1,7 @@
 import { ref } from 'vue'
 import Groq from 'groq-sdk'
+import { supabase } from '@/lib/supabaseClient'
+import { getUserId } from './useDataStore'
 
 const groq = new Groq({
   apiKey: import.meta.env.VITE_GROQ_API_KEY ?? '',
@@ -477,6 +479,15 @@ export function useMealPlan() {
         // Always rebuild the shopping list client-side — never trust model output
         mealPlan.value = validateAndPatchPlan(parsed, profile)
         loading.value = false
+        
+        // Save generated plan to Supabase
+        const userId = await getUserId()
+        if (userId) {
+          supabase.from('data').update({ meal_plan: mealPlan.value, updated_at: new Date().toISOString() }).eq('id', userId).then(({error}) => {
+            if (error) console.error("Error saving meal plan to Supabase:", error)
+          })
+        }
+        
         return
 
       } catch (err: any) {
@@ -500,9 +511,35 @@ export function useMealPlan() {
     loading.value = false
   }
 
-  function clearPlan(): void {
+  async function clearPlan(): Promise<void> {
     mealPlan.value = null
     error.value = null
+    
+    // Clear from Supabase as well
+    const userId = await getUserId()
+    if (userId) {
+      supabase.from('data').update({ meal_plan: null }).eq('id', userId).then()
+    }
+  }
+
+  // Hydrate meal plan from Supabase on initial load if it exists
+  const hydratePlan = async () => {
+    if (mealPlan.value) return;
+    try {
+      const userId = await getUserId()
+      if (!userId) return
+
+      const { data } = await supabase.from('data').select('meal_plan').eq('id', userId).single()
+      if (data && data.meal_plan) {
+        mealPlan.value = data.meal_plan
+      }
+    } catch {
+      // Ignore initial load errors
+    }
+  }
+  
+  if (!mealPlan.value) {
+    hydratePlan()
   }
 
   return { mealPlan, loading, error, activeModel, generateMealPlan, clearPlan }

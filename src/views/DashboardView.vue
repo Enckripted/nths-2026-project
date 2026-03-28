@@ -2,10 +2,11 @@
 import IngredientList from '@/components/ingredients/IngredientList.vue'
 import Prompting from '@/components/prompting.vue'
 import MealDetailModal from '@/components/MealDetailModal.vue'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useMealPlan } from '@/composables/useMealPlan'
 import { useSelectedMeal } from '@/composables/useSelectedMeal'
+import { useMealPlan } from '@/composables/useMealPlan'
 
 // ── Composables ───────────────────────────────────────────────────────────
 const { mealPlan, loading, error } = useMealPlan()
@@ -71,6 +72,16 @@ function getMeal(dayIdx: number, meal: string) {
 function handleCellClick(dayIdx: number, meal: string): void {
   const m = getMeal(dayIdx, meal)
   if (m?.name) selectMeal(m)
+}
+
+// Auto-populate calendar whenever the shared mealPlan ref is set
+// (either from Supabase hydration on boot or from a fresh generation)
+watch(mealPlan, (plan) => {
+  applyPlanToGrid(plan)
+}, { immediate: true })
+
+function onPlanReady(plan: MealPlan | null): void {
+  applyPlanToGrid(plan)
 }
 
 function onPlanError(message: string): void {

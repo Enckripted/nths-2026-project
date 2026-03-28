@@ -1,636 +1,599 @@
 <script setup lang="ts">
-import { computed, ref, toRaw } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import useAuth from '@/composables/useAuth'
 import useUserProfile from '@/composables/useUserProfile'
-import StringList from '@/components/StringList.vue'
 import useDataStore from '@/composables/useDataStore'
+import { supabase } from '@/lib/supabaseClient'
 import router from '@/router'
 
+const { user, logout } = useAuth()
 const { profile } = useUserProfile()
-const { saveProfileData } = useDataStore()
+// Trigger Supabase hydration on mount
+useDataStore()
 
-// Temp clone so changes don't apply until saved
-const tempProfile = ref(structuredClone(toRaw(profile.value)))
+const isLoading = ref(true)
+const supabaseStatus = ref<'loading' | 'success' | 'error' | 'no-data'>('loading')
+const supabaseRaw = ref<unknown>(null)
 
-// ── Computed bindings ──────────────────────────────────────────────────────
-const gender = computed({
-  get: () => tempProfile.value.gender,
-  set: (value) => (tempProfile.value.gender = value),
-})
-const weightLbs = computed({
-  get: () => tempProfile.value.weightLbs,
-  set: (value) => (tempProfile.value.weightLbs = value),
-})
-const heightFt = computed({
-  get: () => tempProfile.value.heightFt,
-  set: (value) => (tempProfile.value.heightFt = value),
-})
-const heightIn = computed({
-  get: () => tempProfile.value.heightIn,
-  set: (value) => (tempProfile.value.heightIn = value),
-})
-const age = computed({
-  get: () => tempProfile.value.age,
-  set: (value) => (tempProfile.value.age = value),
-})
-const desiredWeightDirection = computed({
-  get: () => tempProfile.value.desiredWeightDirection,
-  set: (value) => (tempProfile.value.desiredWeightDirection = value),
-})
-const activityLevel = computed({
-  get: () => tempProfile.value.activityLevel,
-  set: (value) => (tempProfile.value.activityLevel = value),
-})
-const minutesForCooking = computed({
-  get: () => tempProfile.value.minutesForCooking,
-  set: (value) => (tempProfile.value.minutesForCooking = value),
-})
-const cuisineFavorites = computed({
-  get: () => tempProfile.value.cuisineFavorites,
-  set: (value) => (tempProfile.value.cuisineFavorites = value),
-})
-const strongDislikes = computed({
-  get: () => tempProfile.value.strongDislikes,
-  set: (value) => (tempProfile.value.strongDislikes = value),
-})
-const allergies = computed({
-  get: () => tempProfile.value.allergies,
-  set: (value) => (tempProfile.value.allergies = value),
+onMounted(async () => {
+  try {
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) {
+      supabaseStatus.value = 'error'
+      isLoading.value = false
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('data')
+      .select('profile, ingredients, updated_at')
+      .eq('id', authUser.id)
+      .single()
+
+    if (error) {
+      supabaseStatus.value = 'no-data'
+    } else {
+      supabaseRaw.value = data
+      supabaseStatus.value = 'success'
+      // Hydrate profile from Supabase result
+      if (data?.profile) {
+        profile.value = data.profile
+      }
+    }
+  } catch (e) {
+    supabaseStatus.value = 'error'
+    console.error(e)
+  } finally {
+    isLoading.value = false
+  }
 })
 
-// ── Step management ────────────────────────────────────────────────────────
-const currentStep = ref(1)
-const TOTAL_STEPS = 3
+// ── Computed display helpers ──────────────────────────────────────
+const heightDisplay = computed(() => {
+  const ft = profile.value.heightFt
+  const inch = profile.value.heightIn
+  if (!ft && !inch) return '—'
+  return `${ft}′ ${inch}″`
+})
 
-const progressWidth = computed(() => `${((currentStep.value - 1) / (TOTAL_STEPS - 1)) * 100}%`)
+const weightDisplay = computed(() => {
+  if (!profile.value.weightLbs) return '—'
+  return `${profile.value.weightLbs} lbs`
+})
 
-function nextStep() {
-  if (currentStep.value < TOTAL_STEPS) currentStep.value++
-}
-function prevStep() {
-  if (currentStep.value > 1) currentStep.value--
-}
+const goalDisplay = computed(() => {
+  const map: Record<string, { label: string; emoji: string; color: string }> = {
+    cut:      { label: 'Cut – Lose fat',      emoji: '🔥', color: 'rose' },
+    maintain: { label: 'Maintain – Stay balanced', emoji: '⚖️', color: 'sky' },
+    bulk:     { label: 'Bulk – Gain muscle',  emoji: '💪', color: 'emerald' },
+  }
+  return map[profile.value.desiredWeightDirection] ?? { label: '—', emoji: '❓', color: 'slate' }
+})
 
-// ── Option data ────────────────────────────────────────────────────────────
-const genderOptions = [
-  { value: 'male', label: 'Male', emoji: '♂️' },
-  { value: 'female', label: 'Female', emoji: '♀️' },
-  { value: 'other', label: 'Other', emoji: '⚧️' },
-]
+const activityDisplay = computed(() => {
+  const map: Record<string, string> = {
+    sedentary:  'Sedentary',
+    light:      'Light',
+    moderate:   'Moderate',
+    active:     'Active',
+    very_active:'Very Active',
+  }
+  return map[profile.value.activityLevel] ?? profile.value.activityLevel ?? '—'
+})
 
-const goalOptions = [
-  { value: 'cut', label: 'Cut', sub: 'Lose fat', emoji: '🔥', color: 'rose' },
-  { value: 'maintain', label: 'Maintain', sub: 'Stay balanced', emoji: '⚖️', color: 'sky' },
-  { value: 'bulk', label: 'Bulk', sub: 'Gain muscle', emoji: '💪', color: 'emerald' },
-]
+const genderDisplay = computed(() => {
+  const map: Record<string, string> = {
+    male:   '♂️ Male',
+    female: '♀️ Female',
+    other:  '⚧️ Other',
+  }
+  return map[profile.value.gender] ?? '—'
+})
 
-const activityOptions = [
-  { value: 'sedentary', label: 'Sedentary', sub: 'Desk job, minimal movement' },
-  { value: 'light', label: 'Light', sub: 'Light exercise 1–3 days/week' },
-  { value: 'moderate', label: 'Moderate', sub: 'Exercise 3–5 days/week' },
-  { value: 'active', label: 'Active', sub: 'Hard exercise 6–7 days/week' },
-  { value: 'very_active', label: 'Very Active', sub: 'Physical job + daily training' },
-]
-
-const cookingTimeOptions = [
-  { value: 15, label: '15 min', sub: 'Lightning fast' },
-  { value: 30, label: '30 min', sub: 'Quick & easy' },
-  { value: 45, label: '45 min', sub: 'Balanced' },
-  { value: 60, label: '60 min', sub: 'I enjoy cooking' },
-]
-
-// ── Save ──────────────────────────────────────────────────────────────────
-const saveProfile = () => {
-  profile.value = tempProfile.value
-  saveProfileData()
-  router.push('/dashboard')
-}
+const profileIsEmpty = computed(() => {
+  return !profile.value.gender && !profile.value.weightLbs && !profile.value.age
+})
 </script>
 
 <template>
-  <div class="survey-page min-h-screen bg-stone-50 relative overflow-hidden flex flex-col items-center justify-center">
+  <div class="profile-page">
     <!-- Background glows -->
-    <div class="absolute top-[-15%] right-[-10%] w-[500px] h-[500px] bg-emerald-300 rounded-full mix-blend-multiply blur-[120px] opacity-50 pointer-events-none"></div>
-    <div class="absolute bottom-[-10%] left-[-10%] w-[450px] h-[450px] bg-amber-200 rounded-full mix-blend-multiply blur-[100px] opacity-40 pointer-events-none"></div>
+    <div class="glow glow-top"></div>
+    <div class="glow glow-bottom"></div>
 
-    <div class="w-full max-w-2xl mx-auto px-6 py-12">
+    <div class="profile-container">
 
-      <!-- ── Top Label ───────────────────────────────────────────────── -->
-      <div class="mb-8 flex items-center justify-between">
-        <span class="font-spaceGrotesk font-black text-sm uppercase tracking-widest text-slate-400">
-          EASEY PREP CO.
-        </span>
-        <span class="font-tomorrow text-sm font-bold text-slate-400 uppercase tracking-widest">
-          Step {{ currentStep }} of {{ TOTAL_STEPS }}
-        </span>
+      <!-- ── Header ───────────────────────────────────────────── -->
+      <div class="profile-header">
+        <div class="avatar-ring">
+          <span class="avatar-emoji">👤</span>
+        </div>
+        <div class="header-text">
+          <h1 class="page-title">My Profile</h1>
+          <p class="user-email">{{ user?.email ?? 'Not signed in' }}</p>
+        </div>
+        <div class="header-actions">
+        <button class="edit-btn" @click="router.push('/survey')">
+          ✏️ Edit Profile
+        </button>
+        <button class="logout-btn" @click="logout">
+          🚪 Logout
+        </button>
+        </div>
       </div>
 
-      <!-- ── Progress Bar ───────────────────────────────────────────────── -->
-      <div class="w-full h-2 bg-slate-200 rounded-full mb-10 border border-slate-300 overflow-hidden">
-        <div
-          class="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full transition-all duration-500 ease-out"
-          :style="{ width: progressWidth }"
-        ></div>
+      <!-- ── Supabase status badge ─────────────────────────────── -->
+      <div v-if="!isLoading" :class="['status-badge', `status-badge--${supabaseStatus}`]">
+        <span v-if="supabaseStatus === 'success'">✅ Data loaded from Supabase</span>
+        <span v-else-if="supabaseStatus === 'no-data'">⚠️ No Supabase record yet – complete the survey to save data</span>
+        <span v-else-if="supabaseStatus === 'error'">❌ Could not reach Supabase</span>
+        <span v-else>⏳ Connecting to Supabase…</span>
       </div>
 
-      <!-- ── Step Panels with fade transition ─────────────────────────── -->
-      <Transition name="fade" mode="out-in">
+      <!-- ── Loading skeleton ──────────────────────────────────── -->
+      <div v-if="isLoading" class="skeleton-grid">
+        <div v-for="i in 6" :key="i" class="skeleton-card"></div>
+      </div>
 
-        <!-- ══════════════════════════════════════════════
-             STEP 1 — About You
-        ══════════════════════════════════════════════ -->
-        <div v-if="currentStep === 1" key="step1" class="survey-card">
-          <div class="step-header">
-            <span class="step-number">01</span>
-            <h2 class="step-title">About You</h2>
-            <p class="step-sub">Let's start with some basics so we can calibrate your nutrition targets.</p>
-          </div>
+      <!-- ── Empty state ──────────────────────────────────────── -->
+      <div v-else-if="profileIsEmpty && supabaseStatus !== 'loading'" class="empty-state">
+        <span class="empty-emoji">🥗</span>
+        <h2 class="empty-title">No profile data yet</h2>
+        <p class="empty-sub">Complete the quick setup survey and we'll craft a personalised meal plan just for you.</p>
+        <button class="edit-btn edit-btn--large" @click="router.push('/survey')">
+          🚀 Complete Survey
+        </button>
+      </div>
 
-          <!-- Gender -->
-          <div class="field-group">
-            <label class="field-label">How do you identify?</label>
-            <div class="grid grid-cols-3 gap-3">
-              <button
-                v-for="opt in genderOptions"
-                :key="opt.value"
-                type="button"
-                @click="gender = opt.value"
-                :class="[
-                  'option-card',
-                  gender === opt.value ? 'option-card--active' : ''
-                ]"
-              >
-                <span class="text-2xl">{{ opt.emoji }}</span>
-                <span class="font-spaceGrotesk font-bold text-sm uppercase tracking-wide mt-1">{{ opt.label }}</span>
-              </button>
+      <!-- ── Profile grid ──────────────────────────────────────── -->
+      <template v-else-if="!isLoading">
+        <div class="section-label">Personal Stats</div>
+        <div class="stat-grid">
+
+          <div class="stat-card">
+            <span class="stat-icon">🪶</span>
+            <div class="stat-body">
+              <span class="stat-key">Gender</span>
+              <span class="stat-val">{{ genderDisplay }}</span>
             </div>
           </div>
 
-          <!-- Weight -->
-          <div class="field-group">
-            <label class="field-label">Weight (lbs)</label>
-            <div class="relative">
-              <input
-                v-model.number="weightLbs"
-                type="number"
-                min="50"
-                max="500"
-                step="1"
-                id="weight-lbs"
-                class="survey-input pr-16"
-                placeholder="e.g. 175"
-              />
-              <span class="input-unit">lbs</span>
+          <div class="stat-card">
+            <span class="stat-icon">⚖️</span>
+            <div class="stat-body">
+              <span class="stat-key">Weight</span>
+              <span class="stat-val">{{ weightDisplay }}</span>
             </div>
           </div>
 
-          <!-- Height -->
-          <div class="field-group">
-            <label class="field-label">Height</label>
-            <div class="flex gap-3">
-              <div class="relative flex-1">
-                <input
-                  v-model.number="heightFt"
-                  type="number"
-                  min="3"
-                  max="8"
-                  step="1"
-                  id="height-ft"
-                  class="survey-input pr-12"
-                  placeholder="5"
-                />
-                <span class="input-unit">ft</span>
-              </div>
-              <div class="relative flex-1">
-                <input
-                  v-model.number="heightIn"
-                  type="number"
-                  min="0"
-                  max="11"
-                  step="1"
-                  id="height-in"
-                  class="survey-input pr-12"
-                  placeholder="10"
-                />
-                <span class="input-unit">in</span>
-              </div>
+          <div class="stat-card">
+            <span class="stat-icon">📏</span>
+            <div class="stat-body">
+              <span class="stat-key">Height</span>
+              <span class="stat-val">{{ heightDisplay }}</span>
             </div>
           </div>
 
-          <!-- Age -->
-          <div class="field-group">
-            <label class="field-label">Age</label>
-            <div class="relative">
-              <input
-                v-model.number="age"
-                type="number"
-                min="13"
-                max="100"
-                step="1"
-                id="age"
-                class="survey-input pr-16"
-                placeholder="25"
-              />
-              <span class="input-unit">years</span>
+          <div class="stat-card">
+            <span class="stat-icon">🎂</span>
+            <div class="stat-body">
+              <span class="stat-key">Age</span>
+              <span class="stat-val">{{ profile.age ? `${profile.age} yrs` : '—' }}</span>
             </div>
           </div>
 
-          <!-- Goal -->
-          <div class="field-group">
-            <label class="field-label">What's your goal?</label>
-            <div class="grid grid-cols-3 gap-3">
-              <button
-                v-for="opt in goalOptions"
-                :key="opt.value"
-                type="button"
-                @click="desiredWeightDirection = opt.value"
-                :class="[
-                  'option-card',
-                  desiredWeightDirection === opt.value ? 'option-card--active' : ''
-                ]"
-              >
-                <span class="text-2xl">{{ opt.emoji }}</span>
-                <span class="font-spaceGrotesk font-bold text-sm uppercase tracking-wide mt-1">{{ opt.label }}</span>
-                <span class="font-tomorrow text-xs text-slate-500 mt-0.5">{{ opt.sub }}</span>
-              </button>
+          <div class="stat-card stat-card--wide">
+            <span class="stat-icon">{{ goalDisplay.emoji }}</span>
+            <div class="stat-body">
+              <span class="stat-key">Fitness Goal</span>
+              <span class="stat-val">{{ goalDisplay.label }}</span>
             </div>
           </div>
 
-          <!-- Activity Level -->
-          <div class="field-group">
-            <label class="field-label">Activity level</label>
-            <div class="flex flex-col gap-2">
-              <button
-                v-for="opt in activityOptions"
-                :key="opt.value"
-                type="button"
-                @click="activityLevel = opt.value"
-                :class="[
-                  'activity-option',
-                  activityLevel === opt.value ? 'activity-option--active' : ''
-                ]"
-              >
-                <span class="font-spaceGrotesk font-bold text-sm uppercase tracking-wide">{{ opt.label }}</span>
-                <span class="font-tomorrow text-xs text-slate-500 ml-auto">{{ opt.sub }}</span>
-              </button>
+          <div class="stat-card stat-card--wide">
+            <span class="stat-icon">🏃</span>
+            <div class="stat-body">
+              <span class="stat-key">Activity Level</span>
+              <span class="stat-val">{{ activityDisplay }}</span>
             </div>
           </div>
 
-          <div class="step-nav">
-            <div></div>
-            <button type="button" class="nav-btn nav-btn--next" @click="nextStep">
-              Next <span class="ml-1">→</span>
-            </button>
+          <div class="stat-card stat-card--wide">
+            <span class="stat-icon">⏱️</span>
+            <div class="stat-body">
+              <span class="stat-key">Max Cook Time</span>
+              <span class="stat-val">{{ profile.minutesForCooking ? `${profile.minutesForCooking} min` : '—' }}</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Tags sections ─────────────────────────────────── -->
+        <div v-if="profile.cuisineFavorites?.length" class="tag-section">
+          <div class="section-label">Favourite Cuisines</div>
+          <div class="tag-row">
+            <span v-for="c in profile.cuisineFavorites" :key="c" class="tag tag--green">{{ c }}</span>
           </div>
         </div>
 
-        <!-- ══════════════════════════════════════════════
-             STEP 2 — Your Kitchen
-        ══════════════════════════════════════════════ -->
-        <div v-else-if="currentStep === 2" key="step2" class="survey-card">
-          <div class="step-header">
-            <span class="step-number">02</span>
-            <h2 class="step-title">Your Kitchen</h2>
-            <p class="step-sub">Tell us how you like to cook so we can build a realistic schedule.</p>
-          </div>
-
-          <!-- Cooking time -->
-          <div class="field-group">
-            <label class="field-label">Max cooking time per meal</label>
-            <div class="grid grid-cols-4 gap-3">
-              <button
-                v-for="opt in cookingTimeOptions"
-                :key="opt.value"
-                type="button"
-                @click="minutesForCooking = opt.value"
-                :class="[
-                  'option-card',
-                  minutesForCooking === opt.value ? 'option-card--active' : ''
-                ]"
-              >
-                <span class="font-spaceGrotesk font-black text-lg">{{ opt.label }}</span>
-                <span class="font-tomorrow text-xs text-slate-500 mt-0.5">{{ opt.sub }}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Cuisine Favorites -->
-          <div class="field-group">
-            <label class="field-label">Favorite cuisines</label>
-            <p class="field-hint">Type a cuisine and press Enter to add it.</p>
-            <div class="string-list-wrapper">
-              <StringList
-                v-model="cuisineFavorites"
-                label=""
-                placeholder="e.g. Italian, Japanese…"
-              />
-            </div>
-          </div>
-
-          <div class="step-nav">
-            <button type="button" class="nav-btn nav-btn--back" @click="prevStep">
-              <span class="mr-1">←</span> Back
-            </button>
-            <button type="button" class="nav-btn nav-btn--next" @click="nextStep">
-              Next <span class="ml-1">→</span>
-            </button>
+        <div v-if="profile.allergies?.length" class="tag-section">
+          <div class="section-label">Allergies</div>
+          <div class="tag-row">
+            <span v-for="a in profile.allergies" :key="a" class="tag tag--red">{{ a }}</span>
           </div>
         </div>
 
-        <!-- ══════════════════════════════════════════════
-             STEP 3 — Dietary Needs
-        ══════════════════════════════════════════════ -->
-        <div v-else-if="currentStep === 3" key="step3" class="survey-card">
-          <div class="step-header">
-            <span class="step-number">03</span>
-            <h2 class="step-title">Dietary Needs</h2>
-            <p class="step-sub">Help us keep your meals safe and enjoyable by flagging any restrictions.</p>
-          </div>
-
-          <!-- Allergies -->
-          <div class="field-group">
-            <label class="field-label">Allergies</label>
-            <p class="field-hint">These ingredients will <strong>never</strong> appear in your plan.</p>
-            <div class="string-list-wrapper string-list-wrapper--danger">
-              <StringList
-                v-model="allergies"
-                label=""
-                placeholder="e.g. Peanuts, Tree nuts…"
-              />
-            </div>
-          </div>
-
-          <!-- Strong Dislikes -->
-          <div class="field-group">
-            <label class="field-label">Strong dislikes</label>
-            <p class="field-hint">We'll minimize these but may include them when necessary.</p>
-            <div class="string-list-wrapper string-list-wrapper--amber">
-              <StringList
-                v-model="strongDislikes"
-                label=""
-                placeholder="e.g. Cilantro, Mushrooms…"
-              />
-            </div>
-          </div>
-
-          <div class="step-nav">
-            <button type="button" class="nav-btn nav-btn--back" @click="prevStep">
-              <span class="mr-1">←</span> Back
-            </button>
-            <button type="button" class="nav-btn nav-btn--finish" @click="saveProfile">
-              Let's Go 🚀
-            </button>
+        <div v-if="profile.strongDislikes?.length" class="tag-section">
+          <div class="section-label">Strong Dislikes</div>
+          <div class="tag-row">
+            <span v-for="d in profile.strongDislikes" :key="d" class="tag tag--amber">{{ d }}</span>
           </div>
         </div>
 
-      </Transition>
+        <!-- ── Raw Supabase debug panel ───────────────────────── -->
+        <details class="debug-panel">
+          <summary class="debug-summary">🔍 Raw Supabase response (debug)</summary>
+          <pre class="debug-pre">{{ JSON.stringify(supabaseRaw, null, 2) }}</pre>
+        </details>
+      </template>
+
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ── Fade transition ─────────────────────────────────────────────────────── */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-.fade-enter-from {
-  opacity: 0;
-  transform: translateY(8px);
-}
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
+/* ── Layout ───────────────────────────────────────────────────────── */
+.profile-page {
+  min-height: 100vh;
+  background: #f8faf5;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.5rem 1.5rem 4rem;
 }
 
-/* ── Card ─────────────────────────────────────────────────────────────────── */
-.survey-card {
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(100px);
+}
+.glow-top {
+  top: -10%;
+  right: -5%;
+  width: 420px;
+  height: 420px;
+  background: #6ee7b7;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+}
+.glow-bottom {
+  bottom: -8%;
+  left: -8%;
+  width: 380px;
+  height: 380px;
+  background: #fde68a;
+  opacity: 0.3;
+  mix-blend-mode: multiply;
+}
+
+.profile-container {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
   background: #ffffff;
   border: 2px solid #0f172a;
-  border-radius: 28px;
-  box-shadow: 8px 8px 0px rgba(15, 23, 42, 1);
-  padding: 2.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  border-radius: 24px;
+  padding: 1.5rem 2rem;
+  box-shadow: 6px 6px 0px #0f172a;
+  flex-wrap: wrap;
 }
 
-/* ── Step header ──────────────────────────────────────────────────────────── */
-.step-header {
+.avatar-ring {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #d1fae5;
+  border: 2px solid #0f172a;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.75rem;
 }
-.step-number {
+
+.header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-title {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 900;
-  font-size: 4rem;
-  line-height: 1;
-  color: #d1fae5; /* emerald-100 */
-  -webkit-text-stroke: 2px #064e3b;
+  font-size: 1.75rem;
   letter-spacing: -0.04em;
-}
-.step-title {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 900;
-  font-size: 2.25rem;
   color: #0f172a;
-  letter-spacing: -0.04em;
-  line-height: 1;
   text-transform: uppercase;
-  margin-top: -0.5rem;
+  line-height: 1;
+  margin: 0;
 }
-.step-sub {
+
+.user-email {
   font-family: 'Tomorrow', sans-serif;
+  font-size: 0.85rem;
   color: #64748b;
-  font-size: 0.95rem;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────── */
+.edit-btn {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 900;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.6rem 1.25rem;
+  border: 2px solid #0f172a;
+  border-radius: 12px;
+  background: #10b981;
+  color: #0f172a;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px #0f172a;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  white-space: nowrap;
+}
+.edit-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px #0f172a;
+}
+.edit-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px #0f172a;
+}
+.edit-btn--large {
+  padding: 0.85rem 2rem;
+  font-size: 0.9rem;
   margin-top: 0.5rem;
 }
 
-/* ── Field groups ─────────────────────────────────────────────────────────── */
-.field-group {
+.header-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.logout-btn {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 900;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.6rem 1.25rem;
+  border: 2px solid #9f1239;
+  border-radius: 12px;
+  background: #ffe4e6;
+  color: #9f1239;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px #9f1239;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  white-space: nowrap;
+}
+.logout-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px #9f1239;
+}
+.logout-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px #9f1239;
+}
+
+/* ── Status Badge ───────────────────────────────────────────────── */
+.status-badge {
+  padding: 0.65rem 1.25rem;
+  border-radius: 14px;
+  border: 2px solid;
+  font-family: 'Tomorrow', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.status-badge--success {
+  background: #d1fae5;
+  border-color: #065f46;
+  color: #065f46;
+}
+.status-badge--no-data {
+  background: #fef3c7;
+  border-color: #92400e;
+  color: #92400e;
+}
+.status-badge--error {
+  background: #ffe4e6;
+  border-color: #9f1239;
+  color: #9f1239;
+}
+.status-badge--loading {
+  background: #e2e8f0;
+  border-color: #64748b;
+  color: #64748b;
+}
+
+/* ── Skeleton ───────────────────────────────────────────────────── */
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+.skeleton-card {
+  height: 80px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 16px;
+  border: 2px solid #cbd5e1;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Empty state ────────────────────────────────────────────────── */
+.empty-state {
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  border-radius: 24px;
+  box-shadow: 6px 6px 0px #0f172a;
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+.empty-emoji { font-size: 3.5rem; }
+.empty-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 900;
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  margin: 0;
+}
+.empty-sub {
+  font-family: 'Tomorrow', sans-serif;
+  font-size: 0.9rem;
+  color: #64748b;
+  max-width: 380px;
+}
+
+/* ── Section label ──────────────────────────────────────────────── */
+.section-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #94a3b8;
+  padding-left: 0.25rem;
+}
+
+/* ── Stat grid ──────────────────────────────────────────────────── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.85rem;
+}
+
+.stat-card {
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  border-radius: 18px;
+  box-shadow: 4px 4px 0px #0f172a;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.stat-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #0f172a;
+}
+.stat-card--wide {
+  grid-column: span 2;
+}
+
+.stat-icon {
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+.stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.stat-key {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+}
+.stat-val {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+/* ── Tags ────────────────────────────────────────────────────────── */
+.tag-section {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
-.field-label {
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.tag {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #0f172a;
-}
-.field-hint {
-  font-family: 'Tomorrow', sans-serif;
   font-size: 0.8rem;
-  color: #94a3b8;
-  margin-top: -0.25rem;
-}
-
-/* ── Text inputs ─────────────────────────────────────────────────────────── */
-.survey-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #0f172a;
-  border-radius: 14px;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 1.125rem;
-  color: #0f172a;
-  background: #fafaf9;
-  outline: none;
-  box-shadow: 3px 3px 0px rgba(15, 23, 42, 1);
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
-}
-.survey-input:focus {
-  border-color: #10b981;
-  box-shadow: 3px 3px 0px #10b981;
-}
-.input-unit {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-family: 'Tomorrow', sans-serif;
-  font-weight: 700;
-  font-size: 0.875rem;
-  color: #94a3b8;
-  pointer-events: none;
-}
-
-/* ── Option cards ─────────────────────────────────────────────────────────── */
-.option-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem 0.5rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 16px;
-  background: #fafaf9;
-  cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, transform 0.1s ease;
-  box-shadow: 2px 2px 0px #e2e8f0;
-  min-height: 80px;
-}
-.option-card:hover {
-  border-color: #10b981;
-  transform: translateY(-2px);
-  box-shadow: 3px 4px 0px rgba(16, 185, 129, 0.4);
-}
-.option-card--active {
-  border-color: #0f172a;
-  background: #d1fae5;
-  box-shadow: 3px 3px 0px #0f172a;
-}
-
-/* ── Activity row options ─────────────────────────────────────────────────── */
-.activity-option {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  background: #fafaf9;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-  box-shadow: 2px 2px 0px #e2e8f0;
-}
-.activity-option:hover {
-  border-color: #10b981;
-  box-shadow: 2px 2px 0px rgba(16, 185, 129, 0.4);
-}
-.activity-option--active {
-  border-color: #0f172a;
-  background: #d1fae5;
-  box-shadow: 3px 3px 0px #0f172a;
-}
-
-/* ── StringList wrapper overrides ─────────────────────────────────────────── */
-.string-list-wrapper :deep(.space-y-2) {
-  gap: 0;
-}
-.string-list-wrapper :deep(label) {
-  display: none;
-}
-.string-list-wrapper :deep(div:has(input)) {
-  border: 2px solid #0f172a;
-  border-radius: 14px;
-  background: #fafaf9;
-  box-shadow: 3px 3px 0px rgba(15, 23, 42, 1);
-  padding: 0.75rem 1rem;
-  min-height: 52px;
-}
-.string-list-wrapper :deep(span.inline-flex) {
-  background: #d1fae5;
-  color: #064e3b;
-  border: 1px solid #0f172a;
+  padding: 0.35rem 0.85rem;
   border-radius: 9999px;
+  border: 1.5px solid;
+}
+.tag--green { background: #d1fae5; color: #064e3b; border-color: #065f46; }
+.tag--red   { background: #ffe4e6; color: #9f1239; border-color: #be123c; }
+.tag--amber { background: #fef3c7; color: #92400e; border-color: #b45309; }
+
+/* ── Debug panel ─────────────────────────────────────────────────── */
+.debug-panel {
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.debug-summary {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
   font-size: 0.8rem;
-}
-.string-list-wrapper--danger :deep(div:has(input)) {
-  border-color: #9f1239;
-  box-shadow: 3px 3px 0px #9f1239;
-}
-.string-list-wrapper--danger :deep(span.inline-flex) {
-  background: #ffe4e6;
-  color: #9f1239;
-  border-color: #9f1239;
-}
-.string-list-wrapper--amber :deep(div:has(input)) {
-  border-color: #92400e;
-  box-shadow: 3px 3px 0px #92400e;
-}
-.string-list-wrapper--amber :deep(span.inline-flex) {
-  background: #fef3c7;
-  color: #92400e;
-  border-color: #92400e;
-}
-
-/* ── Step nav buttons ─────────────────────────────────────────────────────── */
-.step-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 0.5rem;
-  border-top: 2px dashed #e2e8f0;
-}
-.nav-btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.75rem 2rem;
-  border-radius: 14px;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 900;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  color: #94a3b8;
+  padding: 0.85rem 1.25rem;
   cursor: pointer;
-  border: 2px solid #0f172a;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-  box-shadow: 4px 4px 0px rgba(15, 23, 42, 1);
+  user-select: none;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
-.nav-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0px rgba(15, 23, 42, 1);
-}
-.nav-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px rgba(15, 23, 42, 1);
-}
-.nav-btn--back {
-  background: #fafaf9;
-  color: #64748b;
-}
-.nav-btn--next {
-  background: #10b981;
-  color: #0f172a;
-}
-.nav-btn--finish {
-  background: #0f172a;
-  color: #d1fae5;
+.debug-summary:hover { color: #e2e8f0; }
+.debug-pre {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: #6ee7b7;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  border-top: 1px solid #334155;
+  margin: 0;
 }
 </style>

@@ -1,13 +1,25 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRoute } from 'vue-router'
-import useDataStore from './composables/useDataStore'
-import { computed } from 'vue'
+import useAuth from './composables/useAuth'
+import { computed, onMounted } from 'vue'
 
-const { firstUse } = useDataStore()
+const { user, initializeAuth } = useAuth()
+
+onMounted(async () => {
+    await initializeAuth()
+})
 const route = useRoute()
 
 const isDashboard = computed(() => {
   return route.name == 'dashboard'
+})
+
+const isScan = computed(() => {
+  return route.name === 'scan'
+})
+
+const isProfile = computed(() => {
+  return route.name === 'profile' || route.name === 'survey'
 })
 </script>
 
@@ -22,39 +34,53 @@ const isDashboard = computed(() => {
       <div
         class="logo font-spaceGrotesk font-black text-2xl md:text-3xl tracking-tighter hover:scale-105 transition-transform origin-left text-slate-900 drop-shadow-sm"
       >
-        <RouterLink to="/dashboard">EASEY PREP<span class="text-emerald-700">CO.</span></RouterLink>
+        <RouterLink to="/">EASEY PREP<span class="text-emerald-700">CO.</span></RouterLink>
       </div>
 
-      <!-- Only show button when strictly on landing page -->
+      <!-- On landing page: show Sign In (guests) or Dashboard (logged in) -->
       <div class="auth-buttons flex gap-4" v-if="route.path === '/'">
+        <template v-if="!user">
+          <RouterLink
+            to="/auth"
+            class="brutalist-btn bg-white text-slate-900 hover:bg-stone-100 px-5 py-2.5 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all focus:ring-4 focus:ring-slate-200"
+          >Sign In</RouterLink>
+          <RouterLink
+            to="/survey"
+            class="brutalist-btn bg-emerald-400 hover:bg-emerald-300 px-6 py-2.5 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all focus:ring-4 focus:ring-emerald-200"
+          >GET STARTED</RouterLink>
+        </template>
         <RouterLink
-          :to="firstUse ? '/profile' : '/dashboard'"
+          v-else
+          to="/dashboard"
           class="brutalist-btn bg-emerald-400 hover:bg-emerald-300 px-6 py-2.5 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all focus:ring-4 focus:ring-emerald-200"
-          >START NOW</RouterLink
-        >
+        >DASHBOARD</RouterLink>
       </div>
 
-      <!-- Dashboard / Scan nav: icon links -->
-      <nav class="flex gap-1 items-center">
+      <!-- On auth page: just a "Back to Home" nudge for guests -->
+      <div v-else-if="route.name === 'auth'" class="flex gap-4">
         <RouterLink
-          v-if="!isDashboard"
-          to="/dashboard"
-          :class="['nav-icon-btn', isDashboard ? 'nav-icon-btn--active' : '']"
-        >
-          🍽 <span class="hidden sm:inline ml-1.5">Back to Dashboard</span>
-        </RouterLink>
-        <RouterLink v-if="isDashboard" to="/profile" class="nav-icon-btn">
-          👤 <span class="hidden sm:inline ml-1.5">Profile</span>
-        </RouterLink>
+          to="/"
+          class="font-spaceGrotesk font-bold text-sm text-slate-500 hover:text-slate-900 transition-colors"
+        >← Home</RouterLink>
+      </div>
 
-        <!--<RouterLink
-          v-if="false"
-          to="/scan"
-          :class="['nav-icon-btn', isScan ? 'nav-icon-btn--active' : '']"
-        >
-          🧾 <span class="hidden sm:inline ml-1.5">Scan Receipt</span>
-        </RouterLink>-->
-      </nav>
+      <!-- Dashboard / Scan / Profile nav: icon links -->
+      <div v-else class="flex gap-4 items-center">
+        <nav v-if="isDashboard || isScan || isProfile" class="flex gap-1 items-center">
+          <RouterLink
+            to="/dashboard"
+            :class="['nav-icon-btn', isDashboard ? 'nav-icon-btn--active' : '']"
+          >
+            🍽 <span class="hidden sm:inline ml-1.5">Dashboard</span>
+          </RouterLink>
+          <RouterLink to="/scan" :class="['nav-icon-btn', isScan ? 'nav-icon-btn--active' : '']">
+            🧾 <span class="hidden sm:inline ml-1.5">Scan Receipt</span>
+          </RouterLink>
+          <RouterLink to="/profile" :class="['nav-icon-btn', isProfile ? 'nav-icon-btn--active' : '']">
+            👤 <span class="hidden sm:inline ml-1.5">Profile</span>
+          </RouterLink>
+        </nav>
+      </div>
     </header>
 
     <!-- ── Main content ───────────────────────────────────────────────── -->
