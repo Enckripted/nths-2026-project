@@ -15,6 +15,8 @@ const cuisineFavorites = ref<string[]>([])
 const strongDislikes = ref<string[]>([])
 const allergies = ref<string[]>([])
 
+const isComplete = ref<boolean>(false)
+
 export default function useUserProfile() {
   return {
     gender,
@@ -26,5 +28,6 @@ export default function useUserProfile() {
     cuisineFavorites,
     strongDislikes,
     allergies,
+    isComplete,
   }
 }
