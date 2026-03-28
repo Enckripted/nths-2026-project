@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import IngredientList from '@/components/ingredients/IngredientList.vue'
+import Prompting from '@/components/prompting.vue';
 </script>
 
 <template>
   <main class="home-page">
     <div class="content">
       <IngredientList />
+      <Prompting/>
     </div>
   </main>
 </template>
