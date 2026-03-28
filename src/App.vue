@@ -1,54 +1,59 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRoute } from 'vue-router'
+import useDataStore from './composables/useDataStore'
 import { computed } from 'vue'
 
+const { firstUse } = useDataStore()
 const route = useRoute()
 
-const isHome = computed(() => route.path === '/')
-const isSurvey = computed(() => route.path === '/profile')
-const isDashboard = computed(() => route.path === '/dashboard')
-const isScan = computed(() => route.path === '/scan')
+const isDashboard = computed(() => {
+  return route.name == 'dashboard'
+})
+
+const isScan = computed(() => {
+  return route.name === 'scan'
+})
 </script>
 
 <template>
-  <div class="min-h-screen bg-stone-50 text-slate-900 font-tomorrow flex flex-col font-sans selection:bg-emerald-300 selection:text-slate-900">
-
-    <!-- ── Header ─────────────────────────────────────────────────────── -->
-    <header class="fixed top-0 left-0 w-full z-50 bg-stone-50/95 backdrop-blur-md border-b-2 border-slate-900 px-6 py-4 flex justify-between items-center h-[72px]">
-      <!-- Logo -->
-      <RouterLink to="/" class="logo font-spaceGrotesk font-black text-2xl tracking-tighter hover:scale-105 transition-transform origin-left text-slate-900 drop-shadow-sm">
-        EASEY PREP <span class="text-emerald-700">CO.</span>
-      </RouterLink>
-
-      <!-- Landing nav: CTA only -->
-      <div v-if="isHome" class="flex gap-3 items-center">
-        <RouterLink
-          to="/profile"
-          class="brutalist-btn bg-emerald-400 hover:bg-emerald-300 px-6 py-2 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all"
-        >
-          START NOW
-        </RouterLink>
+  <div
+    class="min-h-screen bg-stone-50 text-slate-900 font-tomorrow flex flex-col font-sans selection:bg-emerald-300 selection:text-slate-900"
+  >
+    <!-- Opaque Minimal Header -->
+    <header
+      class="fixed top-0 left-0 w-full z-50 bg-stone-50/95 backdrop-blur-md border-b-2 border-slate-900 px-6 py-4 flex justify-between items-center h-[80px]"
+    >
+      <div
+        class="logo font-spaceGrotesk font-black text-2xl md:text-3xl tracking-tighter hover:scale-105 transition-transform origin-left text-slate-900 drop-shadow-sm"
+      >
+        <RouterLink to="/dashboard">EASEY PREP<span class="text-emerald-700">CO.</span></RouterLink>
       </div>
 
-      <!-- Survey nav: step hint -->
-      <div v-else-if="isSurvey" class="flex gap-3 items-center">
-        <RouterLink to="/" class="font-tomorrow text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-widest flex items-center gap-1">
-          ← Home
-        </RouterLink>
+      <!-- Only show button when strictly on landing page -->
+      <div class="auth-buttons flex gap-4" v-if="route.path === '/'">
+        <RouterLink
+          :to="firstUse ? '/profile' : '/dashboard'"
+          class="brutalist-btn bg-emerald-400 hover:bg-emerald-300 px-6 py-2.5 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all focus:ring-4 focus:ring-emerald-200"
+          >START NOW</RouterLink
+        >
+      </div>
+      <div v-else>
+        <RouterLink
+          to="/profile"
+          class="brutalist-btn bg-emerald-400 hover:bg-emerald-300 px-6 py-2.5 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all focus:ring-4 focus:ring-emerald-200"
+          >Profile</RouterLink
+        >
       </div>
 
       <!-- Dashboard / Scan nav: icon links -->
-      <nav v-else-if="isDashboard || isScan" class="flex gap-1 items-center">
+      <nav v-if="isDashboard || isScan" class="flex gap-1 items-center">
         <RouterLink
           to="/dashboard"
           :class="['nav-icon-btn', isDashboard ? 'nav-icon-btn--active' : '']"
         >
           🍽 <span class="hidden sm:inline ml-1.5">Dashboard</span>
         </RouterLink>
-        <RouterLink
-          to="/scan"
-          :class="['nav-icon-btn', isScan ? 'nav-icon-btn--active' : '']"
-        >
+        <RouterLink to="/scan" :class="['nav-icon-btn', isScan ? 'nav-icon-btn--active' : '']">
           🧾 <span class="hidden sm:inline ml-1.5">Scan Receipt</span>
         </RouterLink>
         <RouterLink to="/profile" class="nav-icon-btn">
@@ -68,8 +73,8 @@ const isScan = computed(() => route.path === '/scan')
 @import 'tailwindcss';
 
 @theme {
-  --font-tomorrow: "Tomorrow", sans-serif;
-  --font-spaceGrotesk: "Space Grotesk", sans-serif;
+  --font-tomorrow: 'Tomorrow', sans-serif;
+  --font-spaceGrotesk: 'Space Grotesk', sans-serif;
 }
 
 body {
