@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import DashboardView from '@/views/DashboardView.vue'
-import useDataStore from '@/composables/useDataStore'
 import ProfileView from '@/views/ProfileView.vue'
+import ScanView from '@/views/ScanView.vue'
+import useDataStore from '@/composables/useDataStore'
 
 const { firstUse } = useDataStore()
 
@@ -26,6 +27,12 @@ const router = createRouter({
       path: '/dashboard',
       name: 'dashboard',
       component: DashboardView,
+      meta: { requiresProfile: true },
+    },
+    {
+      path: '/scan',
+      name: 'scan',
+      component: ScanView,
       meta: { requiresProfile: true },
     },
   ],

@@ -3,11 +3,13 @@ import type { Profile } from '@/types/shared.types'
 
 const profile = ref<Profile>({
   gender: '',
-  weight: 0,
-  height: 0,
+  weightLbs: 0,
+  heightFt: 5,
+  heightIn: 6,
   desiredWeightDirection: '',
-  activityLevel: 5,
+  activityLevel: 'moderate',
   minutesForCooking: 30,
+  age: 25,
   cuisineFavorites: [],
   strongDislikes: [],
   allergies: [],
