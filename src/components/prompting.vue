@@ -38,8 +38,8 @@ async function handleGenerate(): Promise<void> {
       { name: 'onion', quantity: 2, unit: 'pieces' },
       { name: 'canned tomatoes', quantity: 2, unit: 'cans' },
       { name: 'soy sauce', quantity: 200, unit: 'ml' },
-      { name: 'oats', quantity: 500, unit: 'g' }
-    ]
+      { name: 'oats', quantity: 500, unit: 'g' },
+    ],
   })
 
   if (mealPlan.value) emit('success', mealPlan.value)
