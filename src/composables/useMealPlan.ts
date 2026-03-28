@@ -77,8 +77,8 @@ const INGREDIENT_ALIASES: Record<string, string> = {
 }
 
 function resolveIngredientName(raw: string): string {
-  const lower = raw.toLowerCase().trim()
-  return INGREDIENT_ALIASES[lower] ?? lower
+  const cleaned = raw.toLowerCase().trim()
+  return INGREDIENT_ALIASES[cleaned] ?? cleaned
 }
 
 // ---------------------------------------------------------------------------
@@ -122,25 +122,39 @@ function calculateTargets(profile: any): {
 // Unit normalizer — converts any incoming unit to g / ml / pieces
 // ---------------------------------------------------------------------------
 function normalizeIngredient(i: any): { name: string; quantity: number; unit: string } {
-  let quantity = i.quantity
-  let unit = i.unit
+  let quantity = Number(i.quantity) || 0
+  let unit = (i.unit || '').toLowerCase().trim()
 
-  if (unit === 'kg')                     { quantity = quantity * 1000;              unit = 'g'      }
-  else if (unit === 'L' || unit === 'l') { quantity = quantity * 1000;              unit = 'ml'     }
-  else if (unit === 'lb')                { quantity = Math.round(quantity * 453.6); unit = 'g'      }
-  else if (unit === 'oz')                { quantity = Math.round(quantity * 28.35); unit = 'g'      }
-  else if (unit === 'fl_oz')             { quantity = Math.round(quantity * 29.57); unit = 'ml'     }
-  else if (unit === 'cup')               { quantity = Math.round(quantity * 240);   unit = 'ml'     }
-  else if (unit === 'tbsp')              { quantity = Math.round(quantity * 15);    unit = 'ml'     }
-  else if (unit === 'tsp')               { quantity = Math.round(quantity * 5);     unit = 'ml'     }
-  // A garlic bulb has ~10 cloves — normalise so pantry quantity is comparable
-  else if (unit === 'bulb')              { quantity = quantity * 10;                unit = 'pieces' }
-  // cans: keep as pieces so count comparisons work
-  else if (unit === 'cans' || unit === 'can') { unit = 'pieces' }
-  // Any other non-standard unit → 1 piece
-  else if (!['g', 'ml', 'pieces'].includes(unit)) { quantity = 1; unit = 'pieces' }
+  if (unit === 'kg')                     { quantity *= 1000; unit = 'g' }
+  else if (unit === 'g')                 { unit = 'g' }
+  else if (unit === 'l')                 { quantity *= 1000; unit = 'ml' }
+  else if (unit === 'ml')                { unit = 'ml' }
+  else if (unit === 'lb')                { quantity *= 453.6; unit = 'g' }
+  else if (unit === 'oz')                { quantity *= 28.35; unit = 'g' }
+  else if (unit === 'cup')               { quantity *= 240; unit = 'ml' }
+  else if (unit === 'tbsp')              { quantity *= 15; unit = 'ml' }
+  else if (unit === 'tsp')               { quantity *= 5; unit = 'ml' }
 
-  // Resolve aliases so pantry keys are always canonical
+  // IMPORTANT: normalize ALL countable units
+  else if (
+    unit === 'piece' ||
+    unit === 'pieces' ||
+    unit === 'unit' ||
+    unit === 'units' ||
+    unit === 'item' ||
+    unit === 'items' ||
+    unit === 'clove' ||
+    unit === 'cloves'
+  ) {
+    unit = 'pieces'
+  }
+
+  // fallback
+  if (!['g', 'ml', 'pieces'].includes(unit)) {
+    unit = 'pieces'
+    quantity = quantity || 1
+  }
+
   const name = resolveIngredientName(i.name)
   return { name, quantity, unit }
 }
@@ -151,115 +165,84 @@ function normalizeIngredient(i: any): { name: string; quantity: number; unit: st
 // actual meal ingredient usage vs what the user has at home.
 // ---------------------------------------------------------------------------
 function validateAndPatchPlan(plan: any, profile: any): any {
-  // Build normalized pantry map
   const pantry = new Map<string, { quantity: number; unit: string }>()
-  for (const ing of profile.currentIngredients.map(normalizeIngredient)) {
-    pantry.set(ing.name, { quantity: ing.quantity, unit: ing.unit })
+
+  // ✅ Build pantry correctly
+  for (const ing of (profile.currentIngredients || [])) {
+    const norm = normalizeIngredient(ing)
+    pantry.set(norm.name, {
+      quantity: norm.quantity,
+      unit: norm.unit
+    })
   }
 
-  // Tally total ingredient usage (NOW NORMALIZED)
+  // ✅ Aggregate ALL usage with normalization
   const totalUsed = new Map<string, { quantity: number; unit: string }>()
 
-  for (const day of plan.weeklyPlan) {
+  for (const day of plan.weeklyPlan || []) {
     for (const mealKey of ['breakfast', 'lunch', 'dinner']) {
-      const meal = day[mealKey]
+      const meal = day?.[mealKey]
       if (!meal?.ingredients) continue
 
-      for (const ing of meal.ingredients) {
-        const normalized = normalizeIngredient(ing)
-        const key = normalized.name
+      for (const raw of meal.ingredients) {
+        const ing = normalizeIngredient(raw)
 
-        const existing = totalUsed.get(key)
+        const existing = totalUsed.get(ing.name)
         if (existing) {
-          existing.quantity += normalized.quantity
+          existing.quantity += ing.quantity
         } else {
-          totalUsed.set(key, {
-            quantity: normalized.quantity,
-            unit: normalized.unit
+          totalUsed.set(ing.name, {
+            quantity: ing.quantity,
+            unit: ing.unit
           })
         }
       }
     }
   }
 
-  // Category lookup
+  // ✅ categories
   const categoryMap: Record<string, string[]> = {
-    proteins: [
-      'chicken breast', 'beef', 'pork', 'shrimp',
-      'salmon', 'tuna', 'turkey', 'lamb', 'eggs', 'tofu', 'tempeh', 'sausage'
-    ],
-    produce: [
-      'bell pepper', 'carrot', 'onion', 'tomato', 'potato', 'sweet potato',
-      'zucchini', 'cucumber', 'broccoli', 'cauliflower', 'mushroom', 'garlic',
-      'spinach', 'lettuce', 'kale', 'corn', 'banana', 'apple',
-      'orange', 'lemon', 'lime', 'mango', 'avocado', 'peach', 'pear', 'plum', 'kiwi'
-    ],
-    dairy: [
-      'milk', 'cheese', 'yogurt', 'butter', 'cream',
-      'mozzarella', 'parmesan', 'cheddar', 'cream cheese'
-    ],
-    grains: [
-      'rice', 'oats', 'tortilla', 'bread', 'pasta', 'noodles',
-      'flour', 'quinoa', 'couscous', 'wrap', 'pita'
-    ],
-    pantry: [
-      'olive oil', 'soy sauce', 'canned tomatoes',
-      'honey', 'sugar', 'salt', 'pepper',
-      'vinegar', 'hot sauce', 'salsa',
-      'coconut milk', 'broth', 'stock'
-    ]
+    proteins: ['chicken breast','beef','salmon','eggs','tuna','shrimp','pork'],
+    produce: ['onion','broccoli','spinach','apple','banana','zucchini','mushroom','asparagus'],
+    grains: ['rice','oats','bread','pasta','tortilla'],
+    pantry: ['olive oil','soy sauce','canned tomatoes','honey'],
+    dairy: ['milk','cheese','yogurt']
   }
 
   const categoryOf = (name: string): string => {
-    const lower = name.toLowerCase().trim()
-
-    for (const [cat, items] of Object.entries(categoryMap)) {
-      if (items.includes(lower)) return cat
+    for (const [cat, list] of Object.entries(categoryMap)) {
+      if (list.includes(name)) return cat
     }
-
-    for (const [cat, items] of Object.entries(categoryMap)) {
-      if (items.some(item => lower.includes(item))) return cat
-    }
-
     return 'other'
   }
 
-  const newShoppingList: Record<string, any[]> = {
+  // ✅ rebuild shopping list properly
+  const shopping: Record<string, any[]> = {
     produce: [], proteins: [], dairy: [], grains: [], pantry: [], other: []
   }
 
   for (const [name, used] of totalUsed.entries()) {
-    if (name === 'water') continue
+    const atHome = pantry.get(name)
 
-    const pantryItem = pantry.get(name)
+    let shortfall = used.quantity
 
-    // Unit safety check
-    if (pantryItem && pantryItem.unit !== used.unit) {
-      console.warn(`[unit mismatch] ${name}: used=${used.unit}, pantry=${pantryItem.unit}`)
+    // subtract ONLY if units match
+    if (atHome && atHome.unit === used.unit) {
+      shortfall -= atHome.quantity
     }
 
-    const atHome = pantryItem?.quantity ?? 0
-    const shortfall = used.quantity - atHome
-
-    // Ignore tiny float noise
-    if (shortfall > 0.5) {
+    if (shortfall > 0) {
       const cat = categoryOf(name)
 
-      const existingItem = newShoppingList[cat]?.find(i => i.name === name)
-
-      if (existingItem) {
-        existingItem.quantity += Math.ceil(shortfall)
-      } else {
-        newShoppingList[cat]?.push({
-          name,
-          quantity: Math.ceil(shortfall),
-          unit: used.unit
-        })
-      }
+      shopping[cat]?.push({
+        name,
+        quantity: Math.ceil(shortfall),
+        unit: used.unit
+      })
     }
   }
 
-  plan.shoppingList = newShoppingList
+  plan.shoppingList = shopping
   return plan
 }
 
