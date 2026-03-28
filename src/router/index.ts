@@ -1,10 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import DashboardView from '@/views/DashboardView.vue'
-import SurveyView from '@/views/SurveyView.vue'
-import useUserProfile from '@/composables/useUserProfile'
-import ProfileView from '@/views/ProfileView.vue'
 import useDataStore from '@/composables/useDataStore'
+import ProfileView from '@/views/ProfileView.vue'
 
 const { firstUse } = useDataStore()
 
@@ -20,21 +18,21 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/survey',
-      name: 'survey',
-      component: SurveyView,
+      path: '/profile',
+      name: 'profile',
+      component: ProfileView,
     },
     {
       path: '/dashboard',
       name: 'dashboard',
       component: DashboardView,
-      meta: { requiresProfile: true }
+      meta: { requiresProfile: true },
     },
   ],
 })
 
 router.beforeEach((to) => {
-  if (to.name != 'profile' && firstUse.value) return { name: 'profile' }
+  if (to.name != 'profile' && to.name != 'home' && firstUse.value) return { name: 'profile' }
 })
 
 export default router

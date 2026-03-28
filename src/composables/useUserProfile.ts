@@ -10,13 +10,11 @@ const profile = ref<Profile>({
   minutesForCooking: 30,
   cuisineFavorites: [],
   strongDislikes: [],
-  allergies: []
+  allergies: [],
 })
-
-const isComplete = ref<boolean>(false)
 
 export default function useUserProfile() {
   return {
-    profile
+    profile,
   }
 }
