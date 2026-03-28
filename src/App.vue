@@ -6,16 +6,12 @@ import { computed, onMounted } from 'vue'
 const { user, initializeAuth } = useAuth()
 
 onMounted(async () => {
-    await initializeAuth()
+  await initializeAuth()
 })
 const route = useRoute()
 
 const isDashboard = computed(() => {
   return route.name == 'dashboard'
-})
-
-const isScan = computed(() => {
-  return route.name === 'scan'
 })
 
 const isProfile = computed(() => {
@@ -43,17 +39,20 @@ const isProfile = computed(() => {
           <RouterLink
             to="/auth"
             class="brutalist-btn bg-white text-slate-900 hover:bg-stone-100 px-5 py-2.5 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all focus:ring-4 focus:ring-slate-200"
-          >Sign In</RouterLink>
+            >Sign In</RouterLink
+          >
           <RouterLink
             to="/survey"
             class="brutalist-btn bg-emerald-400 hover:bg-emerald-300 px-6 py-2.5 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all focus:ring-4 focus:ring-emerald-200"
-          >GET STARTED</RouterLink>
+            >GET STARTED</RouterLink
+          >
         </template>
         <RouterLink
           v-else
           to="/dashboard"
           class="brutalist-btn bg-emerald-400 hover:bg-emerald-300 px-6 py-2.5 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all focus:ring-4 focus:ring-emerald-200"
-        >DASHBOARD</RouterLink>
+          >DASHBOARD</RouterLink
+        >
       </div>
 
       <!-- On auth page: just a "Back to Home" nudge for guests -->
@@ -61,22 +60,28 @@ const isProfile = computed(() => {
         <RouterLink
           to="/"
           class="font-spaceGrotesk font-bold text-sm text-slate-500 hover:text-slate-900 transition-colors"
-        >← Home</RouterLink>
+          >← Home</RouterLink
+        >
       </div>
 
       <!-- Dashboard / Scan / Profile nav: icon links -->
       <div v-else class="flex gap-4 items-center">
-        <nav v-if="isDashboard || isScan || isProfile" class="flex gap-1 items-center">
+        <nav v-if="isDashboard || isProfile" class="flex gap-1 items-center">
           <RouterLink
+            v-if="!isDashboard"
             to="/dashboard"
             :class="['nav-icon-btn', isDashboard ? 'nav-icon-btn--active' : '']"
           >
             🍽 <span class="hidden sm:inline ml-1.5">Dashboard</span>
           </RouterLink>
-          <RouterLink to="/scan" :class="['nav-icon-btn', isScan ? 'nav-icon-btn--active' : '']">
+          <!--<RouterLink to="/scan" :class="['nav-icon-btn', isScan ? 'nav-icon-btn--active' : '']">
             🧾 <span class="hidden sm:inline ml-1.5">Scan Receipt</span>
-          </RouterLink>
-          <RouterLink to="/profile" :class="['nav-icon-btn', isProfile ? 'nav-icon-btn--active' : '']">
+          </RouterLink>-->
+          <RouterLink
+            v-else
+            to="/profile"
+            :class="['nav-icon-btn', isProfile ? 'nav-icon-btn--active' : '']"
+          >
             👤 <span class="hidden sm:inline ml-1.5">Profile</span>
           </RouterLink>
         </nav>
