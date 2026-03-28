@@ -11,7 +11,7 @@ const LOCAL_STORAGE_KEY = 'data'
 const dataInitialized = ref(false)
 
 const firstUse = computed(() => {
-  return localStorage.getItem('data') != null
+  return localStorage.getItem('data') == null
 })
 
 function saveDataToLocalStorage() {
@@ -36,7 +36,7 @@ function saveIngredientList() {
 }
 
 function saveProfileData() {
-  saveProfileData()
+  saveDataToLocalStorage()
 }
 
 export default function useDataStore() {

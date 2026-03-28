@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import Prompting from './components/prompting.vue';
-
-
 </script>
 
 <template>
@@ -15,7 +12,6 @@ import Prompting from './components/prompting.vue';
       <nav>
         <RouterLink to="/" class="nav-link">Home</RouterLink>
       </nav>
-      
     </div>
   </header>
 

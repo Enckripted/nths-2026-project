@@ -1,59 +1,71 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, toRaw } from 'vue'
 import useUserProfile from '@/composables/useUserProfile'
 import StringList from '@/components/StringList.vue'
+import useDataStore from '@/composables/useDataStore'
 
 const { profile } = useUserProfile()
+const { saveProfileData } = useDataStore()
+
+//to make sure their changes don't immediately apply...
+//may be a better way to do this?
+const tempProfile = ref(structuredClone(toRaw(profile.value)))
 
 const gender = computed({
-  get: () => profile.value.gender,
-  set: (value) => profile.value.gender = value
+  get: () => tempProfile.value.gender,
+  set: (value) => (tempProfile.value.gender = value),
 })
 
 const weight = computed({
-  get: () => profile.value.weight,
-  set: (value) => profile.value.weight = value
+  get: () => tempProfile.value.weight,
+  set: (value) => (tempProfile.value.weight = value),
 })
 
 const height = computed({
-  get: () => profile.value.height,
-  set: (value) => profile.value.height = value
+  get: () => tempProfile.value.height,
+  set: (value) => (tempProfile.value.height = value),
 })
 
 const desiredWeightDirection = computed({
-  get: () => profile.value.desiredWeightDirection,
-  set: (value) => profile.value.desiredWeightDirection = value
+  get: () => tempProfile.value.desiredWeightDirection,
+  set: (value) => (tempProfile.value.desiredWeightDirection = value),
 })
 
 const activityLevel = computed({
-  get: () => profile.value.activityLevel,
-  set: (value) => profile.value.activityLevel = value
+  get: () => tempProfile.value.activityLevel,
+  set: (value) => (tempProfile.value.activityLevel = value),
 })
 
 const minutesForCooking = computed({
-  get: () => profile.value.minutesForCooking,
-  set: (value) => profile.value.minutesForCooking = value
+  get: () => tempProfile.value.minutesForCooking,
+  set: (value) => (tempProfile.value.minutesForCooking = value),
 })
 
 const cuisineFavorites = computed({
-  get: () => profile.value.cuisineFavorites,
-  set: (value) => profile.value.cuisineFavorites = value
+  get: () => tempProfile.value.cuisineFavorites,
+  set: (value) => (tempProfile.value.cuisineFavorites = value),
 })
 
 const strongDislikes = computed({
-  get: () => profile.value.strongDislikes,
-  set: (value) => profile.value.strongDislikes = value
+  get: () => tempProfile.value.strongDislikes,
+  set: (value) => (tempProfile.value.strongDislikes = value),
 })
 
 const allergies = computed({
-  get: () => profile.value.allergies,
-  set: (value) => profile.value.allergies = value
+  get: () => tempProfile.value.allergies,
+  set: (value) => (tempProfile.value.allergies = value),
 })
 
+function validateInputs() {
+  return true
+}
+
 const saveProfile = () => {
-  // The data is already reactive and updated in real-time
-  // You could add validation or save to localStorage/API here if needed
-  console.log('Profile saved:', profile.value)
+  if (!validateInputs()) {
+    return //TODO: do some extra stuff to show a message here or something
+  }
+  profile.value = tempProfile.value
+  saveProfileData()
 }
 </script>
 <template>
@@ -143,11 +155,7 @@ const saveProfile = () => {
       />
 
       <!-- Strong Dislikes -->
-      <StringList
-        v-model="strongDislikes"
-        label="Strong Dislikes"
-        placeholder="e.g., Spicy food"
-      />
+      <StringList v-model="strongDislikes" label="Strong Dislikes" placeholder="e.g., Spicy food" />
 
       <!-- Allergies -->
       <StringList v-model="allergies" label="Allergies" placeholder="e.g., Nuts" />
