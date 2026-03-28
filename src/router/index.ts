@@ -3,6 +3,10 @@ import HomeView from '../views/HomeView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import SurveyView from '@/views/SurveyView.vue'
 import useUserProfile from '@/composables/useUserProfile'
+import ProfileView from '@/views/ProfileView.vue'
+import useDataStore from '@/composables/useDataStore'
+
+const { firstUse } = useDataStore()
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -29,16 +33,8 @@ const router = createRouter({
   ],
 })
 
-// Navigation Guard
-router.beforeEach((to, from, next) => {
-  if (to.meta.requiresProfile) {
-    const { isComplete } = useUserProfile()
-    if (!isComplete.value) {
-      // Force user to take surveyor if they try to bypass it
-      return next('/survey')
-    }
-  }
-  next()
+router.beforeEach((to) => {
+  if (to.name != 'profile' && firstUse.value) return { name: 'profile' }
 })
 
 export default router
