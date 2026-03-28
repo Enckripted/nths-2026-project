@@ -86,8 +86,7 @@ function getMeal(dayIdx: number, meal: string) {
 </script>
 
 <template>
-  <div class="dashboard-page min-h-screen bg-stone-50 flex flex-col">
-
+  <div class="dashboard-page min-h-screen bg-[#eff9e5] flex flex-col">
     <!-- ══════════════════════════════════════════════════════
          WELCOME HEADER
     ══════════════════════════════════════════════════════ -->
@@ -98,12 +97,16 @@ function getMeal(dayIdx: number, meal: string) {
       <div class="relative z-10 max-w-[1600px] mx-auto px-8 lg:px-14 py-10 flex flex-col md:flex-row items-start md:items-center gap-8">
         <!-- Left: icon + heading -->
         <div class="flex items-center gap-7 flex-1 min-w-0">
-          <div class="w-24 h-24 lg:w-28 lg:h-28 shrink-0 bg-white/25 border-4 border-slate-900 rounded-[20px] shadow-[6px_6px_0px_rgba(15,23,42,1)] flex items-center justify-center text-5xl">
+          <div
+            class="w-24 h-24 lg:w-28 lg:h-28 shrink-0 bg-[#eff9e5]/25 border-4 border-slate-900 rounded-[20px] shadow-[6px_6px_0px_rgba(15,23,42,1)] flex items-center justify-center text-5xl"
+          >
             🧊
           </div>
           <div>
-            <h1 class="font-spaceGrotesk font-black text-stone-50 tracking-tighter leading-none uppercase drop-shadow-2xl text-[clamp(2.4rem,5vw,4.5rem)]">
-              Welcome to<br>your fridge
+            <h1
+              class="font-spaceGrotesk font-black text-[#eff9e5] tracking-tighter leading-none uppercase drop-shadow-2xl text-[clamp(2.4rem,5vw,4.5rem)]"
+            >
+              Welcome to<br />your fridge
             </h1>
             <p class="font-tomorrow text-emerald-100 text-sm font-bold mt-2 opacity-90">
               Manage your ingredients &amp; let AI craft your perfect week.
@@ -115,14 +118,14 @@ function getMeal(dayIdx: number, meal: string) {
         <div class="flex flex-wrap gap-3 items-center shrink-0">
           <button
             @click="showIngredients = !showIngredients"
-            class="brutalist-btn bg-white/90 hover:bg-white text-slate-900 font-spaceGrotesk font-black uppercase tracking-wider text-sm px-5 py-2.5 rounded-xl transition-all"
+            class="brutalist-btn bg-[#eff9e5]/90 hover:bg-[#eff9e5] text-slate-900 font-spaceGrotesk font-black uppercase tracking-wider text-sm px-5 py-2.5 rounded-xl transition-all"
           >
             {{ showIngredients ? '▲ Hide' : '▼ Ingredients' }}
           </button>
 
           <RouterLink
             to="/profile"
-            class="brutalist-btn bg-white/20 hover:bg-white/40 text-stone-50 font-spaceGrotesk font-black uppercase tracking-wider text-sm px-5 py-2.5 rounded-xl transition-all"
+            class="brutalist-btn bg-white/20 hover:bg-white/40 text-[#eff9e5] font-spaceGrotesk font-black uppercase tracking-wider text-sm px-5 py-2.5 rounded-xl transition-all"
           >
             ✏️ Profile
           </RouterLink>
@@ -157,8 +160,13 @@ function getMeal(dayIdx: number, meal: string) {
     <div class="calendar-section flex-1 flex flex-col">
 
       <!-- Section label bar -->
-      <div class="section-label-bar bg-stone-100 border-b-2 border-slate-900 px-8 lg:px-14 py-3 flex items-center gap-4">
-        <span class="font-spaceGrotesk font-black text-xs uppercase tracking-[0.18em] text-slate-500">This Week</span>
+      <div
+        class="section-label-bar bg-[#eff9e5] border-b-2 border-slate-900 px-8 lg:px-14 py-3 flex items-center gap-4"
+      >
+        <span
+          class="font-spaceGrotesk font-black text-xs uppercase tracking-[0.18em] text-slate-500"
+          >This Week</span
+        >
         <div class="flex-1 h-px bg-slate-300"></div>
         <span class="font-tomorrow text-xs font-bold text-slate-400 uppercase tracking-widest">
           {{ planGenerated ? '7 days planned' : 'No plan yet — generate one above' }}
@@ -172,7 +180,9 @@ function getMeal(dayIdx: number, meal: string) {
             <thead>
               <tr>
                 <!-- Row label column -->
-                <th class="row-label-header w-[80px] border-r-4 border-b-4 border-slate-900 bg-stone-50 rounded-tl-2xl"></th>
+                <th
+                  class="row-label-header w-[80px] border-r-4 border-b-4 border-slate-900 bg-[#eff9e5] rounded-tl-2xl"
+                ></th>
 
                 <!-- Day headers -->
                 <th
@@ -195,8 +205,14 @@ function getMeal(dayIdx: number, meal: string) {
 
                     <!-- Today: highlighted -->
                     <template v-else-if="isToday(getWeekDate(i))">
-                      <span class="font-spaceGrotesk font-black text-slate-900 uppercase text-base tracking-tight leading-none">{{ day }}</span>
-                      <span class="font-tomorrow text-[10px] text-slate-800 font-black tracking-wide mt-0.5 bg-slate-900 text-stone-50 px-2 py-0.5 rounded-full">TODAY</span>
+                      <span
+                        class="font-spaceGrotesk font-black text-slate-900 uppercase text-base tracking-tight leading-none"
+                        >{{ day }}</span
+                      >
+                      <span
+                        class="font-tomorrow text-[10px] text-[#eff9e5] font-bold tracking-wide mt-0.5 bg-slate-900 px-2 py-0.5 rounded-full"
+                        >TODAY</span
+                      >
                     </template>
 
                     <!-- Future day -->
@@ -308,12 +324,12 @@ function getMeal(dayIdx: number, meal: string) {
 
 table {
   height: 100%;
-  background: #ffffff;
+  background: #eff9e5;
 }
 
 /* ── Column headers ──────────────────────────────────────────────────────── */
 .row-label-header {
-  background: #fafaf9;
+  background: #eff9e5;
 }
 
 .day-header {
@@ -332,7 +348,7 @@ table {
 
 /* ── Row label ────────────────────────────────────────────────────────────── */
 .row-label {
-  background: #fafaf9;
+  background: #eff9e5;
   width: 80px;
   min-width: 64px;
   border-right: 4px solid #0f172a;
@@ -340,7 +356,7 @@ table {
 
 /* ── Meal cells ───────────────────────────────────────────────────────────── */
 .meal-cell {
-  background: #ffffff;
+  background: #eff9e5;
   vertical-align: top;
   transition: background 0.15s ease;
 }

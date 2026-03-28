@@ -11,31 +11,28 @@ const isScan = computed(() => route.path === '/scan')
 </script>
 
 <template>
-  <div class="min-h-screen bg-stone-50 text-slate-900 font-tomorrow flex flex-col font-sans selection:bg-emerald-300 selection:text-slate-900">
+  <div
+    class="min-h-screen bg-[#eff9e5] text-slate-900 font-tomorrow flex flex-col font-sans selection:bg-emerald-300 selection:text-slate-900"
+  >
+    <!-- Opaque Minimal Header -->
+    <header
+      class="fixed top-0 left-0 w-full z-50 bg-[#eff9e5]/95 backdrop-blur-md border-b-2 border-slate-900 px-6 py-4 flex justify-between items-center h-[80px]"
+    >
+      <div
+        class="logo font-spaceGrotesk font-black text-2xl md:text-3xl tracking-tighter hover:scale-105 transition-transform origin-left text-slate-900 drop-shadow-sm"
+      >
+        <RouterLink to="/dashboard">EASEY PREP<span class="text-emerald-700">CO.</span></RouterLink>
+      </div>
 
-    <!-- ── Header ─────────────────────────────────────────────────────── -->
-    <header class="fixed top-0 left-0 w-full z-50 bg-stone-50/95 backdrop-blur-md border-b-2 border-slate-900 px-6 py-4 flex justify-between items-center h-[72px]">
-      <!-- Logo -->
-      <RouterLink to="/" class="logo font-spaceGrotesk font-black text-2xl tracking-tighter hover:scale-105 transition-transform origin-left text-slate-900 drop-shadow-sm">
-        EASEY PREP <span class="text-emerald-700">CO.</span>
-      </RouterLink>
-
-      <!-- Landing nav: CTA only -->
-      <div v-if="isHome" class="flex gap-3 items-center">
+      <!-- Only show button when strictly on landing page -->
+      <div class="auth-buttons flex gap-4" v-if="route.path === '/'">
         <RouterLink
-          to="/profile"
-          class="brutalist-btn bg-emerald-400 hover:bg-emerald-300 px-6 py-2 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all"
+          :to="firstUse ? '/profile' : '/dashboard'"
+          class="brutalist-btn bg-emerald-400 hover:bg-emerald-300 px-6 py-2.5 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all focus:ring-4 focus:ring-emerald-200"
+          >START NOW</RouterLink
         >
-          START NOW
-        </RouterLink>
       </div>
 
-      <!-- Survey nav: step hint -->
-      <div v-else-if="isSurvey" class="flex gap-3 items-center">
-        <RouterLink to="/" class="font-tomorrow text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-widest flex items-center gap-1">
-          ← Home
-        </RouterLink>
-      </div>
 
       <!-- Dashboard / Scan nav: icon links -->
       <nav v-else-if="isDashboard || isScan" class="flex gap-1 items-center">
@@ -73,7 +70,7 @@ const isScan = computed(() => route.path === '/scan')
 }
 
 body {
-  background-color: #fafaf9;
+  background-color: #eff9e5;
   color: #0f172a;
 }
 
@@ -95,7 +92,7 @@ body {
 .organic-card {
   border: 2px solid #0f172a;
   border-radius: 20px;
-  background-color: #ffffff;
+  background-color: #eff9e5;
   box-shadow: 0 10px 30px -5px rgba(16, 185, 129, 0.15);
 }
 

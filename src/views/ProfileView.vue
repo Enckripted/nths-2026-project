@@ -107,10 +107,8 @@ const saveProfile = () => {
 </script>
 
 <template>
-  <div class="survey-page min-h-screen bg-stone-50 relative overflow-hidden flex flex-col items-center justify-center">
-    <!-- Background glows -->
-    <div class="absolute top-[-15%] right-[-10%] w-[500px] h-[500px] bg-emerald-300 rounded-full mix-blend-multiply blur-[120px] opacity-50 pointer-events-none"></div>
-    <div class="absolute bottom-[-10%] left-[-10%] w-[450px] h-[450px] bg-amber-200 rounded-full mix-blend-multiply blur-[100px] opacity-40 pointer-events-none"></div>
+  <div class="survey-page min-h-screen bg-[#eff9e5] relative overflow-hidden flex flex-col items-center justify-center">
+    <!-- Background glows (Removed as per request) -->
 
     <div class="w-full max-w-2xl mx-auto px-6 py-12">
 
@@ -404,7 +402,7 @@ const saveProfile = () => {
 
 /* ── Card ─────────────────────────────────────────────────────────────────── */
 .survey-card {
-  background: #ffffff;
+  background: #eff9e5;
   border: 2px solid #0f172a;
   border-radius: 28px;
   box-shadow: 8px 8px 0px rgba(15, 23, 42, 1);
@@ -477,7 +475,7 @@ const saveProfile = () => {
   font-weight: 700;
   font-size: 1.125rem;
   color: #0f172a;
-  background: #fafaf9;
+  background: #eff9e5;
   outline: none;
   box-shadow: 3px 3px 0px rgba(15, 23, 42, 1);
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
@@ -507,7 +505,7 @@ const saveProfile = () => {
   padding: 1rem 0.5rem;
   border: 2px solid #e2e8f0;
   border-radius: 16px;
-  background: #fafaf9;
+  background: #eff9e5;
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, transform 0.1s ease;
   box-shadow: 2px 2px 0px #e2e8f0;
@@ -531,7 +529,7 @@ const saveProfile = () => {
   padding: 0.75rem 1rem;
   border: 2px solid #e2e8f0;
   border-radius: 12px;
-  background: #fafaf9;
+  background: #eff9e5;
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -557,7 +555,7 @@ const saveProfile = () => {
 .string-list-wrapper :deep(div:has(input)) {
   border: 2px solid #0f172a;
   border-radius: 14px;
-  background: #fafaf9;
+  background: #eff9e5;
   box-shadow: 3px 3px 0px rgba(15, 23, 42, 1);
   padding: 0.75rem 1rem;
   min-height: 52px;
@@ -622,7 +620,7 @@ const saveProfile = () => {
   box-shadow: 2px 2px 0px rgba(15, 23, 42, 1);
 }
 .nav-btn--back {
-  background: #fafaf9;
+  background: #eff9e5;
   color: #64748b;
 }
 .nav-btn--next {
@@ -631,6 +629,6 @@ const saveProfile = () => {
 }
 .nav-btn--finish {
   background: #0f172a;
-  color: #d1fae5;
+  color: #eff9e5;
 }
 </style>

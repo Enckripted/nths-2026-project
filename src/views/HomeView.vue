@@ -61,14 +61,11 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
 </script>
 
 <template>
-  <div class="home-page overflow-hidden bg-stone-50">
+  <div class="home-page overflow-hidden bg-[#eff9e5]">
 
     <!-- ══════════════════ HERO ══════════════════ -->
     <section class="hero relative min-h-[90vh] flex flex-col justify-center px-[5vw] lg:px-[10vw]">
-      <!-- Background glows -->
-      <div class="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-300 rounded-full mix-blend-multiply blur-[100px] opacity-60 animate-[spin_30s_linear_infinite] pointer-events-none"></div>
-      <div class="absolute bottom-[20%] left-[-10%] w-[500px] h-[500px] bg-amber-200 rounded-full mix-blend-multiply blur-[120px] opacity-50 animate-pulse pointer-events-none"></div>
-      <div class="absolute top-[40%] right-[30%] w-[400px] h-[400px] bg-sky-200 rounded-full mix-blend-multiply blur-[90px] opacity-40 pointer-events-none"></div>
+      <!-- Background glows (Removed as per request) -->
 
       <!-- Hero text -->
       <div class="relative z-10 w-full flex flex-col justify-center max-w-7xl mx-auto">
@@ -87,7 +84,7 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
         <div class="mt-16 flex flex-col sm:flex-row gap-4 relative z-10">
           <RouterLink
             to="/profile"
-            class="brutalist-btn bg-slate-900 text-stone-50 font-spaceGrotesk font-black uppercase tracking-widest py-4 px-10 text-lg rounded-2xl hover:bg-slate-800 inline-block focus:ring-4 focus:ring-slate-300"
+            class="brutalist-btn bg-slate-900 text-[#eff9e5] font-spaceGrotesk font-black uppercase tracking-widest py-4 px-10 text-lg rounded-2xl hover:bg-slate-800 inline-block focus:ring-4 focus:ring-slate-300"
           >
             Get Started — Free →
           </RouterLink>
@@ -130,7 +127,7 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
       <div class="absolute top-1/4 right-1/4 w-[800px] h-[800px] bg-emerald-600 rounded-full mix-blend-screen blur-[150px] opacity-30 pointer-events-none"></div>
       <div class="absolute bottom-1/4 left-1/4 w-[600px] h-[600px] bg-rose-500 rounded-full mix-blend-screen blur-[130px] opacity-20 pointer-events-none"></div>
 
-      <h2 class="text-stone-50 font-spaceGrotesk font-black text-[clamp(4rem,8vw,8rem)] mb-32 max-w-5xl tracking-tighter leading-none relative z-10 drop-shadow-2xl">
+      <h2 class="text-[#eff9e5] font-spaceGrotesk font-black text-[clamp(4rem,8vw,8rem)] mb-32 max-w-5xl tracking-tighter leading-none relative z-10 drop-shadow-2xl">
         NOTHING HITS LIKE <span class="bg-gradient-to-r from-emerald-400 to-lime-300 text-transparent bg-clip-text">HOME COOKING.</span>
       </h2>
 
@@ -141,7 +138,7 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
           class="feature-row flex flex-col md:flex-row gap-16 lg:gap-32 items-center group"
         >
           <div class="text-content flex-1 max-w-xl" :class="idx % 2 !== 0 ? 'md:order-2' : ''">
-            <h3 class="text-stone-50 font-spaceGrotesk font-bold text-5xl lg:text-6xl mb-8 tracking-tight drop-shadow-lg">{{ feat.title }}</h3>
+            <h3 class="text-[#eff9e5] font-spaceGrotesk font-bold text-5xl lg:text-6xl mb-8 tracking-tight drop-shadow-lg">{{ feat.title }}</h3>
             <p class="text-stone-300 font-tomorrow text-xl lg:text-2xl leading-relaxed mb-12">{{ feat.desc }}</p>
             <RouterLink
               to="/profile"
@@ -173,7 +170,7 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
       </div>
       <RouterLink
         to="/profile"
-        class="brutalist-btn bg-slate-900 text-stone-50 font-spaceGrotesk font-black uppercase tracking-widest py-6 px-12 text-2xl md:text-3xl rounded-2xl hover:bg-slate-800 inline-block shrink-0 focus:ring-4 focus:ring-slate-300"
+        class="brutalist-btn bg-slate-900 text-[#eff9e5] font-spaceGrotesk font-black uppercase tracking-widest py-6 px-12 text-2xl md:text-3xl rounded-2xl hover:bg-slate-800 inline-block shrink-0 focus:ring-4 focus:ring-slate-300"
       >
         Start for Free →
       </RouterLink>
@@ -181,7 +178,7 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
 
     <!-- ══════════════════ FOOTER ══════════════════ -->
     <footer class="bg-slate-900 border-t-2 border-slate-700 py-10 px-[5vw] lg:px-[10vw] flex flex-col md:flex-row items-center justify-between gap-4">
-      <span class="font-spaceGrotesk font-black text-xl text-stone-50 tracking-tighter">
+      <span class="font-spaceGrotesk font-black text-xl text-[#eff9e5] tracking-tighter">
         EASEY PREP <span class="text-emerald-400">CO.</span>
       </span>
       <span class="font-tomorrow text-sm text-slate-500">
