@@ -9,10 +9,6 @@ const route = useRoute()
 const isDashboard = computed(() => {
   return route.name == 'dashboard'
 })
-
-const isScan = computed(() => {
-  return route.name === 'scan'
-})
 </script>
 
 <template>
@@ -37,28 +33,27 @@ const isScan = computed(() => {
           >START NOW</RouterLink
         >
       </div>
-      <div v-else>
-        <RouterLink
-          to="/profile"
-          class="brutalist-btn bg-emerald-400 hover:bg-emerald-300 px-6 py-2.5 rounded-xl font-spaceGrotesk font-black uppercase tracking-wider text-sm transition-all focus:ring-4 focus:ring-emerald-200"
-          >Profile</RouterLink
-        >
-      </div>
 
       <!-- Dashboard / Scan nav: icon links -->
-      <nav v-if="isDashboard || isScan" class="flex gap-1 items-center">
+      <nav class="flex gap-1 items-center">
         <RouterLink
+          v-if="!isDashboard"
           to="/dashboard"
           :class="['nav-icon-btn', isDashboard ? 'nav-icon-btn--active' : '']"
         >
-          🍽 <span class="hidden sm:inline ml-1.5">Dashboard</span>
+          🍽 <span class="hidden sm:inline ml-1.5">Back to Dashboard</span>
         </RouterLink>
-        <RouterLink to="/scan" :class="['nav-icon-btn', isScan ? 'nav-icon-btn--active' : '']">
-          🧾 <span class="hidden sm:inline ml-1.5">Scan Receipt</span>
-        </RouterLink>
-        <RouterLink to="/profile" class="nav-icon-btn">
+        <RouterLink v-if="isDashboard" to="/profile" class="nav-icon-btn">
           👤 <span class="hidden sm:inline ml-1.5">Profile</span>
         </RouterLink>
+
+        <!--<RouterLink
+          v-if="false"
+          to="/scan"
+          :class="['nav-icon-btn', isScan ? 'nav-icon-btn--active' : '']"
+        >
+          🧾 <span class="hidden sm:inline ml-1.5">Scan Receipt</span>
+        </RouterLink>-->
       </nav>
     </header>
 
