@@ -2,14 +2,271 @@ import { ref } from 'vue'
 import Groq from 'groq-sdk'
 
 const groq = new Groq({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY as string,
+  apiKey: import.meta.env.VITE_GROQ_API_KEY ?? '',
   dangerouslyAllowBrowser: true
 })
+
+const MODELS: string[] = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'gemma2-9b-it',
+  'mixtral-8x7b-32768'
+]
 
 const mealPlan = ref<any>(null)
 const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
+const activeModel = ref<string>(MODELS[0] ?? '')
 
+// ---------------------------------------------------------------------------
+// Ingredient alias map
+// Normalises model variant names to canonical pantry keys so lookups match.
+// e.g. "scrambled eggs" → "eggs", "salmon fillet" → "salmon"
+// Add any new variants here as the model introduces them.
+// ---------------------------------------------------------------------------
+const INGREDIENT_ALIASES: Record<string, string> = {
+  // eggs
+  'scrambled eggs': 'eggs',
+  'fried eggs': 'eggs',
+  'poached eggs': 'eggs',
+  'boiled eggs': 'eggs',
+  'egg': 'eggs',
+  // chicken
+  'chicken': 'chicken breast',
+  'chicken thigh': 'chicken breast',
+  'grilled chicken': 'chicken breast',
+  'shredded chicken': 'chicken breast',
+  // beef
+  'ground beef': 'beef',
+  'beef strips': 'beef',
+  'beef steak': 'beef',
+  'steak': 'beef',
+  'minced beef': 'beef',
+  // salmon
+  'salmon fillet': 'salmon',
+  'grilled salmon': 'salmon',
+  // garlic
+  'garlic clove': 'garlic',
+  'garlic cloves': 'garlic',
+  'minced garlic': 'garlic',
+  // rice
+  'white rice': 'rice',
+  'brown rice': 'rice',
+  'cooked rice': 'rice',
+  'steamed rice': 'rice',
+  // oats
+  'rolled oats': 'oats',
+  'instant oats': 'oats',
+  'oatmeal': 'oats',
+  // olive oil
+  'olive oil spray': 'olive oil',
+  'cooking oil': 'olive oil',
+  'oil': 'olive oil',
+  // canned tomatoes
+  'canned tomato': 'canned tomatoes',
+  'tomato can': 'canned tomatoes',
+  'tinned tomatoes': 'canned tomatoes',
+  // soy sauce
+  'soy sauce mix': 'soy sauce',
+  'teriyaki sauce': 'soy sauce',
+  // onion
+  'yellow onion': 'onion',
+  'white onion': 'onion',
+  'red onion': 'onion',
+  'diced onion': 'onion',
+}
+
+function resolveIngredientName(raw: string): string {
+  const lower = raw.toLowerCase().trim()
+  return INGREDIENT_ALIASES[lower] ?? lower
+}
+
+// ---------------------------------------------------------------------------
+// Nutrition target calculator (Mifflin-St Jeor)
+// Pre-calculated client-side so the model receives hard numbers, not a formula.
+// ---------------------------------------------------------------------------
+function calculateTargets(profile: any): {
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+} {
+  const activityMultiplier: Record<string, number> = {
+    sedentary: 1.2,
+    light: 1.375,
+    moderate: 1.55,
+    active: 1.725,
+    very_active: 1.9
+  }
+
+  const base =
+    profile.gender === 'male'
+      ? 10 * profile.weightKg + 6.25 * profile.heightCm - 5 * profile.age + 5
+      : 10 * profile.weightKg + 6.25 * profile.heightCm - 5 * profile.age - 161
+
+  const tdee = base * (activityMultiplier[profile.activityLevel] ?? 1.55)
+
+  const goalAdjustment: Record<string, number> = { cut: -400, bulk: 400, maintain: 0 }
+  const calories = Math.round(tdee + (goalAdjustment[profile.goal] ?? 0))
+
+  const proteinPerKg: Record<string, number> = { cut: 2.2, bulk: 1.8, maintain: 1.6 }
+  const protein = Math.round((proteinPerKg[profile.goal] ?? 1.6) * profile.weightKg)
+
+  const fat = Math.round((calories * 0.25) / 9)
+  const carbs = Math.round((calories - protein * 4 - fat * 9) / 4)
+
+  return { calories, protein, carbs, fat }
+}
+
+// ---------------------------------------------------------------------------
+// Unit normalizer — converts any incoming unit to g / ml / pieces
+// ---------------------------------------------------------------------------
+function normalizeIngredient(i: any): { name: string; quantity: number; unit: string } {
+  let quantity = i.quantity
+  let unit = i.unit
+
+  if (unit === 'kg')                     { quantity = quantity * 1000;              unit = 'g'      }
+  else if (unit === 'L' || unit === 'l') { quantity = quantity * 1000;              unit = 'ml'     }
+  else if (unit === 'lb')                { quantity = Math.round(quantity * 453.6); unit = 'g'      }
+  else if (unit === 'oz')                { quantity = Math.round(quantity * 28.35); unit = 'g'      }
+  else if (unit === 'fl_oz')             { quantity = Math.round(quantity * 29.57); unit = 'ml'     }
+  else if (unit === 'cup')               { quantity = Math.round(quantity * 240);   unit = 'ml'     }
+  else if (unit === 'tbsp')              { quantity = Math.round(quantity * 15);    unit = 'ml'     }
+  else if (unit === 'tsp')               { quantity = Math.round(quantity * 5);     unit = 'ml'     }
+  // A garlic bulb has ~10 cloves — normalise so pantry quantity is comparable
+  else if (unit === 'bulb')              { quantity = quantity * 10;                unit = 'pieces' }
+  // cans: keep as pieces so count comparisons work
+  else if (unit === 'cans' || unit === 'can') { unit = 'pieces' }
+  // Any other non-standard unit → 1 piece
+  else if (!['g', 'ml', 'pieces'].includes(unit)) { quantity = 1; unit = 'pieces' }
+
+  // Resolve aliases so pantry keys are always canonical
+  const name = resolveIngredientName(i.name)
+  return { name, quantity, unit }
+}
+
+// ---------------------------------------------------------------------------
+// Shopping list validator
+// Discards the model's shopping list and rebuilds it from scratch by tallying
+// actual meal ingredient usage vs what the user has at home.
+// ---------------------------------------------------------------------------
+function validateAndPatchPlan(plan: any, profile: any): any {
+  // Build normalized pantry map
+  const pantry = new Map<string, { quantity: number; unit: string }>()
+  for (const ing of profile.currentIngredients.map(normalizeIngredient)) {
+    pantry.set(ing.name, { quantity: ing.quantity, unit: ing.unit })
+  }
+
+  // Tally total ingredient usage (NOW NORMALIZED)
+  const totalUsed = new Map<string, { quantity: number; unit: string }>()
+
+  for (const day of plan.weeklyPlan) {
+    for (const mealKey of ['breakfast', 'lunch', 'dinner']) {
+      const meal = day[mealKey]
+      if (!meal?.ingredients) continue
+
+      for (const ing of meal.ingredients) {
+        const normalized = normalizeIngredient(ing)
+        const key = normalized.name
+
+        const existing = totalUsed.get(key)
+        if (existing) {
+          existing.quantity += normalized.quantity
+        } else {
+          totalUsed.set(key, {
+            quantity: normalized.quantity,
+            unit: normalized.unit
+          })
+        }
+      }
+    }
+  }
+
+  // Category lookup
+  const categoryMap: Record<string, string[]> = {
+    proteins: [
+      'chicken breast', 'beef', 'pork', 'shrimp',
+      'salmon', 'tuna', 'turkey', 'lamb', 'eggs', 'tofu', 'tempeh', 'sausage'
+    ],
+    produce: [
+      'bell pepper', 'carrot', 'onion', 'tomato', 'potato', 'sweet potato',
+      'zucchini', 'cucumber', 'broccoli', 'cauliflower', 'mushroom', 'garlic',
+      'spinach', 'lettuce', 'kale', 'corn', 'banana', 'apple',
+      'orange', 'lemon', 'lime', 'mango', 'avocado', 'peach', 'pear', 'plum', 'kiwi'
+    ],
+    dairy: [
+      'milk', 'cheese', 'yogurt', 'butter', 'cream',
+      'mozzarella', 'parmesan', 'cheddar', 'cream cheese'
+    ],
+    grains: [
+      'rice', 'oats', 'tortilla', 'bread', 'pasta', 'noodles',
+      'flour', 'quinoa', 'couscous', 'wrap', 'pita'
+    ],
+    pantry: [
+      'olive oil', 'soy sauce', 'canned tomatoes',
+      'honey', 'sugar', 'salt', 'pepper',
+      'vinegar', 'hot sauce', 'salsa',
+      'coconut milk', 'broth', 'stock'
+    ]
+  }
+
+  const categoryOf = (name: string): string => {
+    const lower = name.toLowerCase().trim()
+
+    for (const [cat, items] of Object.entries(categoryMap)) {
+      if (items.includes(lower)) return cat
+    }
+
+    for (const [cat, items] of Object.entries(categoryMap)) {
+      if (items.some(item => lower.includes(item))) return cat
+    }
+
+    return 'other'
+  }
+
+  const newShoppingList: Record<string, any[]> = {
+    produce: [], proteins: [], dairy: [], grains: [], pantry: [], other: []
+  }
+
+  for (const [name, used] of totalUsed.entries()) {
+    if (name === 'water') continue
+
+    const pantryItem = pantry.get(name)
+
+    // Unit safety check
+    if (pantryItem && pantryItem.unit !== used.unit) {
+      console.warn(`[unit mismatch] ${name}: used=${used.unit}, pantry=${pantryItem.unit}`)
+    }
+
+    const atHome = pantryItem?.quantity ?? 0
+    const shortfall = used.quantity - atHome
+
+    // Ignore tiny float noise
+    if (shortfall > 0.5) {
+      const cat = categoryOf(name)
+
+      const existingItem = newShoppingList[cat]?.find(i => i.name === name)
+
+      if (existingItem) {
+        existingItem.quantity += Math.ceil(shortfall)
+      } else {
+        newShoppingList[cat]?.push({
+          name,
+          quantity: Math.ceil(shortfall),
+          unit: used.unit
+        })
+      }
+    }
+  }
+
+  plan.shoppingList = newShoppingList
+  return plan
+}
+
+
+// ---------------------------------------------------------------------------
+// Prompts
+// ---------------------------------------------------------------------------
 function buildSystemPrompt(): string {
   return `You are a professional nutritionist and meal planning expert.
 
@@ -17,69 +274,54 @@ STRICT RULES:
 1. Return ONLY valid JSON. No markdown, no backticks, no text outside the JSON object. Ever.
 2. NEVER include an ingredient the user is allergic to or restricted from — not even in trace amounts.
 3. NEVER suggest a meal that exceeds the user's max cooking time.
-4. NEVER repeat the same meal twice in the same week.
-5. Shopping list must EXCLUDE anything the user already has at home in sufficient quantity.
-6. Every day must hit within 50 calories of the daily target.
-7. When the user has an ingredient at home, check if the quantity is sufficient for the meal before using it.
-8. If the quantity is insufficient, add the shortfall amount to the shopping list.
-9. Shopping list quantities must be realistic grocery amounts (e.g. "500g chicken breast" not just "chicken breast").
-10. Every ingredient in a meal must include a name, quantity, and unit (e.g. { "name": "eggs", "quantity": 3, "unit": "pieces" }).
-11. Never list an ingredient as just a string — always use the object format with name, quantity, and unit.
-12. Always use these exact units — never deviate:
-    - Solid foods: g (grams)
-    - Liquids: ml (milliliters)
-    - Countable items (eggs, bananas, cans): pieces
-    - Spices/seasonings: g (grams)
-    - Never use: oz, lb, cups, tbsp, tsp, kg, L — convert everything to g or ml
+4. NEVER repeat the same meal name anywhere in the weekly plan — all 21 meals must have unique names.
+5. Every day's totalCalories must be within 50 calories of the EXACT daily calorie target provided. This is a hard constraint.
+6. Every day's totalProtein must be within 10g of the EXACT daily protein target provided. This is a hard constraint.
+7. Every meal MUST contain a meaningful protein source (meat, fish, eggs, or legumes). Never a meal of only vegetables or carbs.
+8. When the user has an ingredient at home, always use it before introducing new ones.
+9. Every ingredient must use the object format: { "name": string, "quantity": number, "unit": string }.
+10. Always use these exact units:
+    - Solid foods (meat, fish, rice, pasta, cheese, oats, nuts, spinach, leafy greens): g
+    - Liquids (milk, oil, sauce, broth, juice): ml
+    - Spices/seasonings: g
+    - ALWAYS "pieces" for: eggs, tortillas, cans, slices of bread, banana, apple, orange,
+      lemon, lime, mango, avocado, peach, pear, plum, kiwi, bell pepper, carrot, onion,
+      tomato, potato, sweet potato, zucchini, cucumber, broccoli (head), cauliflower (head),
+      corn (cob), mushroom, garlic clove
+    - NEVER use: oz, lb, cups, tbsp, tsp, kg, L, head, bulb — convert to g, ml, or pieces
+11. Always use the canonical ingredient name — never a preparation variant:
+    - Use "eggs" not "scrambled eggs", "fried eggs", "poached eggs"
+    - Use "chicken breast" not "chicken", "grilled chicken", "shredded chicken"
+    - Use "beef" not "steak", "ground beef", "beef strips"
+    - Use "garlic" not "garlic clove", "garlic cloves", "minced garlic"
+    - Use "rice" not "white rice", "cooked rice", "steamed rice"
+    - Use "oats" not "oatmeal", "rolled oats", "instant oats"
+    - Use "olive oil" not "oil", "cooking oil"
+    - Use "salmon" not "salmon fillet"
+    - Use "onion" not "yellow onion", "red onion", "diced onion"
+12. NEVER add water to the shopping list.
 
-CALORIE CALCULATION — use Mifflin-St Jeor:
-- Men: (10 × weight kg) + (6.25 × height cm) − (5 × age) + 5
-- Women: (10 × weight kg) + (6.25 × height cm) − (5 × age) − 161
-- Multiply by activity multiplier:
-  - Sedentary: 1.2
-  - Light: 1.375
-  - Moderate: 1.55
-  - Active: 1.725
-  - Very Active: 1.9
-- Adjust for goal:
-  - Cut: subtract 400 calories
-  - Bulk: add 400 calories
-  - Maintain: no change
-
-PROTEIN TARGETS:
-- Cut: 2.2g per kg bodyweight
-- Bulk: 1.8g per kg bodyweight
-- Maintain: 1.6g per kg bodyweight
+CALORIE & MACRO RULES:
+- Use the exact pre-calculated targets from the user message. Do not recalculate.
+- Each day: breakfast + lunch + dinner must sum to within ±50 kcal and ±10g protein of the daily target.
+- Hard per-meal calorie ceilings (never exceed these):
+  - Breakfast: MAX 750 kcal
+  - Lunch: MAX 900 kcal
+  - Dinner: MAX 1050 kcal — but aim for the target split, not the ceiling
+- If a meal is under on protein, increase the protein source quantity — do not leave a meal nutritionally empty.
 
 MEAL VARIETY:
-- Rotate through the user's cuisine preferences across the week
-- Distribute preferred cuisines evenly — don't front-load them
-- Breakfast should be quick and realistic for a weekday
-- Weekend meals (Sat/Sun) can be slightly more complex
+- All 21 meal names must be completely unique.
+- Rotate cuisine preferences evenly across the week — do not front-load.
+- Breakfast should be quick for a weekday. Weekend (Sat/Sun) can be more complex.
 
 SHOPPING LIST:
-- Only include what the user does NOT already have in sufficient quantity
-- Categorize into: produce, proteins, dairy, grains, pantry, other
-- Use realistic grocery quantities in standardized units (g, ml, or pieces only)`
+- Only include what the user does NOT have in sufficient quantity at home.
+- NEVER include water.
+- Every shopping list item must be an object: { "name": string, "quantity": number, "unit": string }.`
 }
 
-function normalizeIngredient(i: any): { name: string; quantity: number; unit: string } {
-  let quantity = i.quantity
-  let unit = i.unit
-
-  if (unit === 'kg') { quantity = quantity * 1000; unit = 'g' }
-  else if (unit === 'L' || unit === 'l') { quantity = quantity * 1000; unit = 'ml' }
-  else if (unit === 'lb') { quantity = Math.round(quantity * 453.6); unit = 'g' }
-  else if (unit === 'oz') { quantity = Math.round(quantity * 28.35); unit = 'g' }
-  else if (unit === 'fl_oz') { quantity = Math.round(quantity * 29.57); unit = 'ml' }
-  else if (unit === 'cup') { quantity = Math.round(quantity * 240); unit = 'ml' }
-  else if (unit === 'tbsp') { quantity = Math.round(quantity * 15); unit = 'ml' }
-  else if (unit === 'tsp') { quantity = Math.round(quantity * 5); unit = 'ml' }
-
-  return { name: i.name, quantity, unit }
-}
-
-function buildUserPrompt(profile: any): string {
+function buildUserPrompt(profile: any, targets: ReturnType<typeof calculateTargets>): string {
   const activityLabel: Record<string, string> = {
     sedentary: 'Sedentary (desk job, little to no exercise)',
     light: 'Light (light exercise 1-3 days/week)',
@@ -96,6 +338,14 @@ function buildUserPrompt(profile: any): string {
 
   const normalizedIngredients = profile.currentIngredients.map(normalizeIngredient)
 
+  // Per-meal hard targets injected as explicit numbers
+  const breakfastCals = Math.round(targets.calories * 0.27)
+  const lunchCals     = Math.round(targets.calories * 0.33)
+  const dinnerCals    = Math.round(targets.calories * 0.40)
+  const breakfastProt = Math.round(targets.protein * 0.25)
+  const lunchProt     = Math.round(targets.protein * 0.35)
+  const dinnerProt    = Math.round(targets.protein * 0.40)
+
   return `Generate a 7-day meal plan for this user:
 
 --- PROFILE ---
@@ -105,6 +355,17 @@ Weight: ${profile.weightKg} kg
 Height: ${profile.heightCm} cm
 Goal: ${goalLabel[profile.goal]}
 Activity level: ${activityLabel[profile.activityLevel]}
+
+--- HARD NUTRITION TARGETS (use exactly — do not recalculate) ---
+Daily calories: ${targets.calories} kcal  (each day must land within ±50 kcal)
+Daily protein:  ${targets.protein}g       (each day must land within ±10g)
+Daily carbs:    ${targets.carbs}g
+Daily fat:      ${targets.fat}g
+
+Per-meal targets — stay as close as possible and never exceed the MAX:
+- Breakfast: ~${breakfastCals} kcal / ~${breakfastProt}g protein  (MAX: 750 kcal)
+- Lunch:     ~${lunchCals} kcal / ~${lunchProt}g protein  (MAX: 900 kcal)
+- Dinner:    ~${dinnerCals} kcal / ~${dinnerProt}g protein  (MAX: 1050 kcal)
 
 --- FOOD PREFERENCES ---
 Cuisine preferences: ${profile.cuisinePreferences.length > 0 ? profile.cuisinePreferences.join(', ') : 'No preference — suggest a variety'}
@@ -117,21 +378,22 @@ ${normalizedIngredients.length > 0
       : 'None — assume pantry is empty'}
 
 --- INSTRUCTIONS ---
-1. Calculate my exact daily calorie and macro targets using the Mifflin-St Jeor equation and the rules in your instructions.
-2. Build a full 7-day meal plan with breakfast, lunch, and dinner for every day Monday through Sunday.
-3. Prioritize using my current ingredients before introducing new ones to minimize waste.
-4. Check ingredient quantities — if I don't have enough of something, add the shortfall to the shopping list.
-5. Every meal must stay within my max cooking time of ${profile.cookingTimeMinutes} minutes.
-6. Every meal must be completely free of: ${profile.allergies.length > 0 ? profile.allergies.join(', ') : 'N/A'}.
-7. Generate a shopping list for only what I still need to buy — exclude anything I already have in sufficient quantity.
-8. All ingredient quantities must use standardized units only: g for solids, ml for liquids, pieces for countable items.
-9. Return the result as a single JSON object matching this exact schema — no markdown, no backticks, no extra text:
+1. Use the exact daily targets above — do not recalculate them.
+2. Build a full 7-day meal plan: breakfast, lunch, dinner for Monday through Sunday.
+3. All 21 meal names must be unique — no exceptions.
+4. Every meal must contain a meaningful protein source.
+5. Always use canonical ingredient names (e.g. "eggs" not "scrambled eggs", "chicken breast" not "chicken").
+6. Prioritize using current ingredients first to minimize waste.
+7. Every meal must stay within ${profile.cookingTimeMinutes} minutes.
+8. Every meal must be free of: ${profile.allergies.length > 0 ? profile.allergies.join(', ') : 'N/A'}.
+9. Units: g for solids, ml for liquids, pieces for countable items. Never use "head" or "bulb".
+10. Return a single JSON object — no markdown, no backticks, no extra text:
 
 {
-  "dailyCalorieTarget": number,
-  "dailyProteinTarget": number,
-  "dailyCarbTarget": number,
-  "dailyFatTarget": number,
+  "dailyCalorieTarget": ${targets.calories},
+  "dailyProteinTarget": ${targets.protein},
+  "dailyCarbTarget": ${targets.carbs},
+  "dailyFatTarget": ${targets.fat},
   "weeklyPlan": [
     {
       "day": "Monday",
@@ -178,49 +440,78 @@ ${normalizedIngredients.length > 0
     }
   ],
   "shoppingList": {
-    "produce": string[],
-    "proteins": string[],
-    "dairy": string[],
-    "grains": string[],
-    "pantry": string[],
-    "other": string[]
+    "produce":   [{ "name": string, "quantity": number, "unit": string }],
+    "proteins":  [{ "name": string, "quantity": number, "unit": string }],
+    "dairy":     [{ "name": string, "quantity": number, "unit": string }],
+    "grains":    [{ "name": string, "quantity": number, "unit": string }],
+    "pantry":    [{ "name": string, "quantity": number, "unit": string }],
+    "other":     [{ "name": string, "quantity": number, "unit": string }]
   },
   "notes": string
 }
 
-The weeklyPlan array must contain exactly 7 objects, one for each day Monday through Sunday in order.`
+The weeklyPlan array must contain exactly 7 objects: Monday through Sunday in order.`
 }
 
+// ---------------------------------------------------------------------------
+// Composable
+// ---------------------------------------------------------------------------
 export function useMealPlan() {
   async function generateMealPlan(profile: any): Promise<void> {
     loading.value = true
     error.value = null
     mealPlan.value = null
 
-    try {
-      const result = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0.7,
-        max_tokens: 8000,
-        messages: [
-          { role: 'system', content: buildSystemPrompt() },
-          { role: 'user', content: buildUserPrompt(profile) }
-        ]
-      })
+    const targets = calculateTargets(profile)
 
-      const raw = result.choices[0]?.message?.content ?? ''
-      const cleaned = raw.replace(/```json|```/g, '').trim()
-      mealPlan.value = JSON.parse(cleaned)
+    for (let attempts = 0; attempts < MODELS.length; attempts++) {
+      const model = MODELS[attempts]
+      activeModel.value = model ?? ''
 
-    } catch (err) {
-      if (err instanceof SyntaxError) {
-        error.value = 'Failed to parse meal plan — try generating again.'
-      } else {
-        error.value = err instanceof Error ? err.message : 'Unknown error'
+      console.log(`Trying model (${attempts + 1}/${MODELS.length}): ${model}`)
+
+      try {
+        const result = await groq.chat.completions.create({
+          model: model as string,
+          temperature: 0.7,
+          max_tokens: 8000,
+          messages: [
+            { role: 'system', content: buildSystemPrompt() },
+            { role: 'user', content: buildUserPrompt(profile, targets) }
+          ]
+        })
+
+        const raw = result.choices[0]?.message?.content ?? ''
+        const cleaned = raw.replace(/```json|```/g, '').trim()
+        const parsed = JSON.parse(cleaned)
+
+        console.log('[debug] profile.currentIngredients:', JSON.stringify(profile.currentIngredients))
+        console.log('[debug] parsed weeklyPlan days:', parsed.weeklyPlan?.length)
+
+        // Always rebuild the shopping list client-side — never trust model output
+        mealPlan.value = validateAndPatchPlan(parsed, profile)
+        loading.value = false
+        return
+
+      } catch (err: any) {
+        if (err?.status === 429) {
+          console.warn(`Model ${model} is rate limited, trying next...`)
+          continue
+        }
+
+        if (err instanceof SyntaxError) {
+          error.value = 'Failed to parse meal plan — try generating again.'
+        } else {
+          error.value = err instanceof Error ? err.message : 'Unknown error'
+        }
+
+        loading.value = false
+        return
       }
-    } finally {
-      loading.value = false
     }
+
+    error.value = 'All models are currently rate limited — please wait a few minutes and try again.'
+    loading.value = false
   }
 
   function clearPlan(): void {
@@ -228,5 +519,5 @@ export function useMealPlan() {
     error.value = null
   }
 
-  return { mealPlan, loading, error, generateMealPlan, clearPlan }
+  return { mealPlan, loading, error, activeModel, generateMealPlan, clearPlan }
 }
