@@ -109,7 +109,7 @@ const isProfile = computed(() => {
 }
 
 body {
-  background-color: #fafaf9;
+  background-color: #eff9e5;
   color: #0f172a;
 }
 
@@ -131,7 +131,7 @@ body {
 .organic-card {
   border: 2px solid #0f172a;
   border-radius: 20px;
-  background-color: #ffffff;
+  background-color: #eff9e5;
   box-shadow: 0 10px 30px -5px rgba(16, 185, 129, 0.15);
 }
 
