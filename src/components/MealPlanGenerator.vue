@@ -23,10 +23,7 @@ const emit = defineEmits<{
 }>()
 
 async function handleGenerate(): Promise<void> {
-  await generateMealPlan({
-    ...profile.value,
-    currentIngredients: ingredients.value,
-  })
+  await generateMealPlan(profile.value, ingredients.value)
 
   if (mealPlan.value) emit('success', mealPlan.value)
   if (error.value) emit('error', error.value)
