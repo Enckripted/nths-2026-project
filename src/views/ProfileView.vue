@@ -13,7 +13,6 @@ useDataStore()
 
 const isLoading = ref(true)
 const supabaseStatus = ref<'loading' | 'success' | 'error' | 'no-data'>('loading')
-const supabaseRaw = ref<unknown>(null)
 
 onMounted(async () => {
   try {
@@ -33,7 +32,6 @@ onMounted(async () => {
     if (error) {
       supabaseStatus.value = 'no-data'
     } else {
-      supabaseRaw.value = data
       supabaseStatus.value = 'success'
       // Hydrate profile from Supabase result
       if (data?.profile) {
@@ -122,14 +120,6 @@ const profileIsEmpty = computed(() => {
         </div>
       </div>
 
-      <!-- ── Supabase status badge ─────────────────────────────── -->
-      <div v-if="!isLoading" :class="['status-badge', `status-badge--${supabaseStatus}`]">
-        <span v-if="supabaseStatus === 'success'">✅ Data loaded from Supabase</span>
-        <span v-else-if="supabaseStatus === 'no-data'">⚠️ No Supabase record yet – complete the survey to save data</span>
-        <span v-else-if="supabaseStatus === 'error'">❌ Could not reach Supabase</span>
-        <span v-else>⏳ Connecting to Supabase…</span>
-      </div>
-
       <!-- ── Loading skeleton ──────────────────────────────────── -->
       <div v-if="isLoading" class="skeleton-grid">
         <div v-for="i in 6" :key="i" class="skeleton-card"></div>
@@ -147,7 +137,7 @@ const profileIsEmpty = computed(() => {
 
       <!-- ── Profile grid ──────────────────────────────────────── -->
       <template v-else-if="!isLoading">
-        <div class="section-label">Personal Stats</div>
+        <div class="section-label">Personal Information</div>
         <div class="stat-grid">
 
           <div class="stat-card">
@@ -230,11 +220,6 @@ const profileIsEmpty = computed(() => {
           </div>
         </div>
 
-        <!-- ── Raw Supabase debug panel ───────────────────────── -->
-        <details class="debug-panel">
-          <summary class="debug-summary">🔍 Raw Supabase response (debug)</summary>
-          <pre class="debug-pre">{{ JSON.stringify(supabaseRaw, null, 2) }}</pre>
-        </details>
       </template>
 
     </div>
@@ -404,36 +389,6 @@ const profileIsEmpty = computed(() => {
   box-shadow: 2px 2px 0px #9f1239;
 }
 
-/* ── Status Badge ───────────────────────────────────────────────── */
-.status-badge {
-  padding: 0.65rem 1.25rem;
-  border-radius: 14px;
-  border: 2px solid;
-  font-family: 'Tomorrow', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-.status-badge--success {
-  background: #d1fae5;
-  border-color: #065f46;
-  color: #065f46;
-}
-.status-badge--no-data {
-  background: #fef3c7;
-  border-color: #92400e;
-  color: #92400e;
-}
-.status-badge--error {
-  background: #ffe4e6;
-  border-color: #9f1239;
-  color: #9f1239;
-}
-.status-badge--loading {
-  background: #e2e8f0;
-  border-color: #64748b;
-  color: #64748b;
-}
-
 /* ── Skeleton ───────────────────────────────────────────────────── */
 .skeleton-grid {
   display: grid;
@@ -566,34 +521,4 @@ const profileIsEmpty = computed(() => {
 .tag--red   { background: #ffe4e6; color: #9f1239; border-color: #be123c; }
 .tag--amber { background: #fef3c7; color: #92400e; border-color: #b45309; }
 
-/* ── Debug panel ─────────────────────────────────────────────────── */
-.debug-panel {
-  background: #0f172a;
-  border: 2px solid #334155;
-  border-radius: 16px;
-  overflow: hidden;
-}
-.debug-summary {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 0.8rem;
-  color: #94a3b8;
-  padding: 0.85rem 1.25rem;
-  cursor: pointer;
-  user-select: none;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.debug-summary:hover { color: #e2e8f0; }
-.debug-pre {
-  font-family: 'Fira Code', 'Courier New', monospace;
-  font-size: 0.78rem;
-  color: #6ee7b7;
-  padding: 1rem 1.25rem;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-  border-top: 1px solid #334155;
-  margin: 0;
-}
 </style>

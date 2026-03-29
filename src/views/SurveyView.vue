@@ -65,34 +65,34 @@ const stepErrors = ref<string[]>([])
 const progressWidth = computed(() => `${((currentStep.value - 1) / (TOTAL_STEPS - 1)) * 100}%`)
 
 // ── Validation ────────────────────────────────────────────────────────────
-function clampWeight(e: Event) {
-  const v = Number((e.target as HTMLInputElement).value)
-  if (!isNaN(v)) weightLbs.value = Math.min(700, Math.max(50, Math.round(v)))
-}
-function clampHeightFt(e: Event) {
-  const v = Number((e.target as HTMLInputElement).value)
-  if (!isNaN(v)) heightFt.value = Math.min(8, Math.max(3, Math.round(v)))
-}
-function clampHeightIn(e: Event) {
-  const v = Number((e.target as HTMLInputElement).value)
-  if (!isNaN(v)) heightIn.value = Math.min(11, Math.max(0, Math.round(v)))
-}
-function clampAge(e: Event) {
-  const v = Number((e.target as HTMLInputElement).value)
-  if (!isNaN(v)) age.value = Math.min(100, Math.max(13, Math.round(v)))
-}
-
 function validateStep1(): string[] {
   const errs: string[] = []
   if (!gender.value) errs.push('Please select a gender.')
-  if (!weightLbs.value || weightLbs.value < 50 || weightLbs.value > 700)
-    errs.push('Weight must be between 50 and 700 lbs.')
-  if (!heightFt.value || heightFt.value < 3 || heightFt.value > 8)
-    errs.push('Height (feet) must be between 3 and 8.')
-  if (heightIn.value < 0 || heightIn.value > 11)
+
+  if (weightLbs.value == null) {
+    errs.push('Please enter your weight.')
+  } else if (weightLbs.value < 70 || weightLbs.value > 400) {
+    errs.push('Weight must be a reasonable value between 70 and 400 lbs.')
+  }
+
+  if (heightFt.value == null) {
+    errs.push('Please enter your height (feet).')
+  } else if (heightFt.value < 3 || heightFt.value > 7) {
+    errs.push('Height (feet) must be between 3 and 7.')
+  }
+
+  if (heightIn.value == null) {
+    errs.push('Please enter your height (inches).')
+  } else if (heightIn.value < 0 || heightIn.value > 11) {
     errs.push('Height (inches) must be between 0 and 11.')
-  if (!age.value || age.value < 13 || age.value > 100)
-    errs.push('Age must be between 13 and 100.')
+  }
+
+  if (age.value == null) {
+    errs.push('Please enter your age.')
+  } else if (age.value < 13 || age.value > 100) {
+    errs.push('Age must be a valid number between 13 and 100.')
+  }
+
   if (!desiredWeightDirection.value) errs.push('Please select a fitness goal.')
   if (!activityLevel.value) errs.push('Please select an activity level.')
   return errs
@@ -224,13 +224,12 @@ const saveProfile = () => {
               <input
                 v-model.number="weightLbs"
                 type="number"
-                min="50"
-                max="700"
+                min="70"
+                max="400"
                 step="1"
                 id="weight-lbs"
                 class="survey-input pr-16"
                 placeholder="e.g. 175"
-                @change="clampWeight"
               />
               <span class="input-unit">lbs</span>
             </div>
@@ -245,12 +244,11 @@ const saveProfile = () => {
                   v-model.number="heightFt"
                   type="number"
                   min="3"
-                  max="8"
+                  max="7"
                   step="1"
                   id="height-ft"
                   class="survey-input pr-12"
                   placeholder="5"
-                  @change="clampHeightFt"
                 />
                 <span class="input-unit">ft</span>
               </div>
@@ -264,7 +262,6 @@ const saveProfile = () => {
                   id="height-in"
                   class="survey-input pr-12"
                   placeholder="10"
-                  @change="clampHeightIn"
                 />
                 <span class="input-unit">in</span>
               </div>
@@ -284,7 +281,6 @@ const saveProfile = () => {
                 id="age"
                 class="survey-input pr-16"
                 placeholder="e.g. 25"
-                @change="clampAge"
               />
               <span class="input-unit">years</span>
             </div>

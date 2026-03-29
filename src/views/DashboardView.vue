@@ -91,7 +91,7 @@ function onPlanError(message: string): void {
 </script>
 
 <template>
-  <div class="dashboard-page min-h-screen bg-stone-50 flex flex-col">
+  <div class="dashboard-page min-h-screen bg-[#eff9e5] flex flex-col">
     <!-- Modal lives here, teleports to <body> -->
     <MealDetailModal />
 
@@ -177,7 +177,7 @@ function onPlanError(message: string): void {
     ══════════════════════════════════════════════════════ -->
     <div class="calendar-section flex-1 flex flex-col">
       <div
-        class="section-label-bar bg-stone-100 border-b-2 border-slate-900 px-8 lg:px-14 py-3 flex items-center gap-4"
+        class="section-label-bar bg-[#eff9e5] border-b-2 border-slate-900 px-8 lg:px-14 py-3 flex items-center gap-4"
       >
         <span
           class="font-spaceGrotesk font-black text-xs uppercase tracking-[0.18em] text-slate-500"
@@ -212,7 +212,7 @@ function onPlanError(message: string): void {
             <thead>
               <tr>
                 <th
-                  class="row-label-header w-[80px] border-r-4 border-b-4 border-slate-900 bg-stone-50 rounded-tl-2xl"
+                  class="row-label-header w-[80px] border-r-4 border-b-4 border-slate-900 bg-[#eff9e5] rounded-tl-2xl"
                 ></th>
 
                 <!-- Dynamic day headers from rolling weekDates -->

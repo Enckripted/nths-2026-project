@@ -36,6 +36,7 @@ export default function useAuth() {
     try {
       await supabase.auth.signOut()
     } finally {
+      localStorage.removeItem('data')
       // Hard reload to wipe ALL in-memory Vue state (meal plan, profile, user, etc.)
       // Using replace() so the back button doesn't return to the protected page
       window.location.replace('/')
