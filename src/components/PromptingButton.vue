@@ -25,28 +25,6 @@ const emit = defineEmits<{
 async function handleGenerate(): Promise<void> {
   console.log(profile.value)
   await generateMealPlan(profile.value, ingredients.value)
-  /*await generateMealPlan({
-    gender: 'male',
-    age: 28,
-    weightKg: 85,
-    heightCm: 180,
-    goal: 'cut',
-    activityLevel: 'moderate',
-    cuisinePreferences: ['Italian', 'Chinese', 'Indian'],
-    allergies: ['peanuts'],
-    cookingTimeMinutes: 30,
-    currentIngredients: [
-      { name: 'eggs', quantity: 6, unit: 'pieces' },
-      { name: 'chicken breast', quantity: 500, unit: 'g' },
-      { name: 'rice', quantity: 1, unit: 'kg' },
-      { name: 'olive oil', quantity: 500, unit: 'ml' },
-      { name: 'garlic', quantity: 1, unit: 'bulb' },
-      { name: 'onion', quantity: 2, unit: 'pieces' },
-      { name: 'canned tomatoes', quantity: 2, unit: 'cans' },
-      { name: 'soy sauce', quantity: 200, unit: 'ml' },
-      { name: 'oats', quantity: 500, unit: 'g' },
-    ],
-  })*/
 
   if (mealPlan.value) emit('success', mealPlan.value)
   if (error.value) emit('error', error.value)

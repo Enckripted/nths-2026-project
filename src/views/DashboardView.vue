@@ -132,14 +132,14 @@ function onPlanError(message: string): void {
         <div class="flex flex-wrap gap-3 items-center shrink-0">
           <button
             @click="showIngredients = !showIngredients"
-            class="brutalist-btn bg-white/90 hover:bg-white text-slate-900 font-spaceGrotesk font-black uppercase tracking-wider text-sm px-5 py-2.5 rounded-xl transition-all"
+            class="brutalist-btn bg-[#eff9e5]/90 hover:bg-[#eff9e5] text-slate-900 font-spaceGrotesk font-black uppercase tracking-wider text-sm px-5 py-2.5 rounded-xl transition-all"
           >
             {{ showIngredients ? '▲ Hide' : '▼ Ingredients' }}
           </button>
 
           <!--<RouterLink
             to="/profile"
-            class="brutalist-btn bg-white/20 hover:bg-white/40 text-stone-50 font-spaceGrotesk font-black uppercase tracking-wider text-sm px-5 py-2.5 rounded-xl transition-all"
+            class="brutalist-btn bg-white/20 hover:bg-white/40 text-[#eff9e5] font-spaceGrotesk font-black uppercase tracking-wider text-sm px-5 py-2.5 rounded-xl transition-all"
           >
             ✏️ Profile
           </RouterLink>-->
@@ -386,11 +386,11 @@ function onPlanError(message: string): void {
 
 table {
   height: 100%;
-  background: #ffffff;
+  background: #eff9e5;
 }
 
 .row-label-header {
-  background: #fafaf9;
+  background: #eff9e5;
 }
 
 .day-header {
@@ -408,14 +408,14 @@ table {
 }
 
 .row-label {
-  background: #fafaf9;
+  background: #eff9e5;
   width: 80px;
   min-width: 64px;
   border-right: 4px solid #0f172a;
 }
 
 .meal-cell {
-  background: #ffffff;
+  background: #eff9e5;
   vertical-align: top;
   transition: background 0.15s ease;
 }
