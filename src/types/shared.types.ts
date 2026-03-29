@@ -6,13 +6,13 @@ interface Ingredient {
 
 interface Profile {
   gender: string
-  weightLbs: number
-  heightFt: number
-  heightIn: number
+  weightLbs: number | null
+  heightFt: number | null
+  heightIn: number | null
   desiredWeightDirection: string
   activityLevel: string
-  minutesForCooking: number
-  age: number
+  minutesForCooking: number | null
+  age: number | null
   cuisineFavorites: string[]
   strongDislikes: string[]
   allergies: string[]

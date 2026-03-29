@@ -26,16 +26,16 @@ const isProfile = computed(() => {
 
 <template>
   <div
-    class="min-h-screen bg-stone-50 text-slate-900 font-tomorrow flex flex-col font-sans selection:bg-emerald-300 selection:text-slate-900"
+    class="min-h-screen bg-[#eff9e5] text-slate-900 font-tomorrow flex flex-col font-sans selection:bg-emerald-300 selection:text-slate-900"
   >
     <!-- Opaque Minimal Header -->
     <header
-      class="fixed top-0 left-0 w-full z-50 bg-stone-50/95 backdrop-blur-md border-b-2 border-slate-900 px-6 py-4 flex justify-between items-center h-[80px]"
+      class="fixed top-0 left-0 w-full z-50 bg-[#eff9e5]/95 backdrop-blur-md border-b-2 border-slate-900 px-6 py-4 flex justify-between items-center h-[80px]"
     >
       <div
         class="logo font-spaceGrotesk font-black text-2xl md:text-3xl tracking-tighter hover:scale-105 transition-transform origin-left text-slate-900 drop-shadow-sm"
       >
-        <RouterLink to="/">EASEY PREP<span class="text-emerald-700">CO.</span></RouterLink>
+        <RouterLink to="/">EASEY PREP <span class="text-emerald-700">CO.</span></RouterLink>
       </div>
 
       <!-- On landing page: show Sign In (guests) or Dashboard (logged in) -->
