@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import useAuth from './composables/useAuth'
+// Importing useDataStore here ensures its module-level Supabase auth listener
+// is registered immediately on app boot so ingredients load on sign-in.
+import useDataStore from './composables/useDataStore'
 import { computed, onMounted } from 'vue'
 
 const { user, initializeAuth } = useAuth()
+// Initialize the data store so its auth listener is active from the start
+useDataStore()
 
 onMounted(async () => {
     await initializeAuth()

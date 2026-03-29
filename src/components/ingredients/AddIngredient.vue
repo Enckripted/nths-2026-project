@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useIngredients } from '@/composables/useIngredientList'
+import useDataStore from '@/composables/useDataStore'
 
 const { addIngredient } = useIngredients()
+const { saveIngredientList } = useDataStore()
 
 const name = ref('')
 const quantity = ref(0)
@@ -17,6 +19,7 @@ const handleAdd = () => {
       quantity.value = 0
       unit.value = ''
       errorMessage.value = ''
+      saveIngredientList()
     } else {
       errorMessage.value = 'Conflicting unit for existing ingredient.'
     }

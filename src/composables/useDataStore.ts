@@ -1,8 +1,7 @@
 import type { LocalStorageData } from '@/types/shared.types'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useIngredients } from './useIngredientList'
 import useUserProfile from './useUserProfile'
-import { ref } from 'vue'
 import { supabase } from '@/lib/supabaseClient'
 
 const { ingredients } = useIngredients()
@@ -53,21 +52,11 @@ function saveDataToLocalStorage() {
   syncToSupabase()
 }
 
-async function retrieveFromLocalStorage() {
-  dataInitialized.value = true
-
-  // 1. Immediately inject any local state so the UI loads fast
-  if (!firstUse.value) {
-    try {
-      const saveData: LocalStorageData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) as string)
-      if (saveData.ingredients) ingredients.value = saveData.ingredients
-      if (saveData.profile) profile.value = saveData.profile
-    } catch (e) {
-      console.error("Local storage load failed", e)
-    }
-  }
-
-  // 2. Hydrate from Supabase and overwrite if successful
+/**
+ * Pull the latest ingredients + profile from Supabase and overwrite
+ * local state. Also refreshes the local storage cache.
+ */
+export async function refreshFromSupabase(): Promise<void> {
   const userId = await getUserId()
   if (!userId) return
 
@@ -80,14 +69,32 @@ async function retrieveFromLocalStorage() {
   if (remoteData && !error) {
     if (remoteData.ingredients) ingredients.value = remoteData.ingredients
     if (remoteData.profile) profile.value = remoteData.profile
-    
-    // Update local cache
-    const data: LocalStorageData = {
+
+    // Keep local cache in sync
+    const cache: LocalStorageData = {
       ingredients: ingredients.value,
       profile: profile.value,
     }
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data))
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cache))
   }
+}
+
+async function initializeData() {
+  dataInitialized.value = true
+
+  // 1. Immediately inject any local state so the UI loads fast
+  if (!firstUse.value) {
+    try {
+      const saveData: LocalStorageData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) as string)
+      if (saveData.ingredients) ingredients.value = saveData.ingredients
+      if (saveData.profile) profile.value = saveData.profile
+    } catch (e) {
+      console.error('Local storage load failed', e)
+    }
+  }
+
+  // 2. Hydrate from Supabase and overwrite if successful
+  await refreshFromSupabase()
 }
 
 function saveIngredientList() {
@@ -98,13 +105,25 @@ function saveProfileData() {
   saveDataToLocalStorage()
 }
 
+// Listen for sign-in events and immediately pull the user's data from Supabase.
+// This ensures ingredients are loaded as soon as the user authenticates,
+// regardless of which component happens to call useDataStore() next.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_IN') {
+    // Re-run the full initialization so Supabase data overwrites any stale state
+    dataInitialized.value = false
+    initializeData()
+  }
+})
+
 export default function useDataStore() {
-  if (!dataInitialized.value) retrieveFromLocalStorage()
+  if (!dataInitialized.value) initializeData()
 
   return {
     firstUse,
     isSyncing,
     saveIngredientList,
     saveProfileData,
+    refreshFromSupabase,
   }
 }

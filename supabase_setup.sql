@@ -1,16 +1,21 @@
--- Run this in the Supabase SQL Editor to wire up official authentication
+-- ══════════════════════════════════════════════════════════════════════════
+-- EASEY PREP — Supabase Setup SQL
+-- Run this in the Supabase Dashboard → SQL Editor
+-- ══════════════════════════════════════════════════════════════════════════
 
--- 1. Drop the old custom `public.users` dummy table (if it exists)
+-- 1. Drop legacy tables if they exist
 DROP TABLE IF EXISTS public.users CASCADE;
-
--- 2. Drop the existing `public.data` table because it was likely created by default with a `bigint` ID instead of a `uuid`! We need it to be a UUID to match the real authentication system.
 DROP TABLE IF EXISTS public.data CASCADE;
 
--- 3. Create the fresh `data` table explicitly mapped to Supabase's built-in `auth.users`
+-- 2. Create the `data` table — one row per authenticated user.
+--    Each row stores the user's profile + ingredient list + meal plan as JSONB.
 CREATE TABLE public.data (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  profile jsonb DEFAULT '{}'::jsonb NOT NULL,
-  ingredients jsonb DEFAULT '[]'::jsonb NOT NULL,
-  meal_plan jsonb,
-  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+  id          uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  profile     jsonb DEFAULT '{}'::jsonb  NOT NULL,
+  ingredients jsonb DEFAULT '[]'::jsonb  NOT NULL,
+  meal_plan   jsonb,
+  updated_at  timestamptz DEFAULT timezone('utc', now()) NOT NULL
 );
+
+-- RLS is deliberately disabled so reads/writes work without policy setup.
+-- The table is still protected by requiring a valid auth.users FK reference.

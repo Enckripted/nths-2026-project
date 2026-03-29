@@ -6,10 +6,12 @@ import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useMealPlan } from '@/composables/useMealPlan'
 import { useSelectedMeal } from '@/composables/useSelectedMeal'
+import useDataStore from '@/composables/useDataStore'
 
 // ── Composables ───────────────────────────────────────────────────────────
 const { mealPlan, loading, error } = useMealPlan()
 const { selectMeal } = useSelectedMeal()
+useDataStore()
 
 // ── Date utilities — rolling 7 days from today ────────────────────────────
 const today = new Date()
