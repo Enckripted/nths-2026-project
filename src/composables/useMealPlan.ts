@@ -397,6 +397,8 @@ STRICT RULES:
 12. NEVER add water to the shopping list.
 13. Minimize token use.
 14. Never repeat a meal name. This is a hard constraint.
+15. Be hyper detailed with 5- 12 detailed steps in each recipie so a beginner cook can follow with temperature, cooking time, etc. This is a hard constraint
+16. Double check the protein, calories, and macros of each meal and fix according to the internet for each meal. This is a hard constraint.
 
 CALORIE & MACRO RULES:
 - Use the exact pre-calculated targets from the user message. Do not recalculate.
