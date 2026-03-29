@@ -32,7 +32,7 @@ export function useGemini() {
       chatHistory.value.push({ role: 'user', content: userMessage })
 
       const result = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         max_tokens: 1024,
         messages: [
           { role: 'system', content: CHEF_SYSTEM_PROMPT },
