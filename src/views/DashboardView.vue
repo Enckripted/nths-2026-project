@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import IngredientList from '@/components/ingredients/IngredientList.vue'
-import Prompting from '@/components/prompting.vue'
+import PromptingButton from '@/components/PromptingButton.vue'
 import MealDetailModal from '@/components/MealDetailModal.vue'
 import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -24,8 +24,21 @@ const weekDates = Array.from({ length: 7 }, (_, i) => {
   return d
 })
 
-const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-const DAY_SHORT   = ['SUN','MON','TUE','WED','THU','FRI','SAT']
+const MONTH_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+const DAY_SHORT = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
 function formatDate(d: Date): string {
   return `${MONTH_SHORT[d.getMonth()]} ${d.getDate()}`
@@ -79,7 +92,6 @@ function onPlanError(message: string): void {
 
 <template>
   <div class="dashboard-page min-h-screen bg-stone-50 flex flex-col">
-
     <!-- Modal lives here, teleports to <body> -->
     <MealDetailModal />
 
@@ -125,14 +137,14 @@ function onPlanError(message: string): void {
             {{ showIngredients ? '▲ Hide' : '▼ Ingredients' }}
           </button>
 
-          <RouterLink
+          <!--<RouterLink
             to="/profile"
             class="brutalist-btn bg-white/20 hover:bg-white/40 text-stone-50 font-spaceGrotesk font-black uppercase tracking-wider text-sm px-5 py-2.5 rounded-xl transition-all"
           >
             ✏️ Profile
-          </RouterLink>
+          </RouterLink>-->
 
-          <Prompting
+          <PromptingButton
             class="brutalist-btn bg-amber-300 hover:bg-amber-200 text-slate-900 rounded-xl font-spaceGrotesk font-black text-sm uppercase tracking-widest cursor-pointer py-2.5 px-6 focus:ring-4 focus:ring-amber-100"
             @error="onPlanError"
           />
@@ -167,7 +179,9 @@ function onPlanError(message: string): void {
       <div
         class="section-label-bar bg-stone-100 border-b-2 border-slate-900 px-8 lg:px-14 py-3 flex items-center gap-4"
       >
-        <span class="font-spaceGrotesk font-black text-xs uppercase tracking-[0.18em] text-slate-500">
+        <span
+          class="font-spaceGrotesk font-black text-xs uppercase tracking-[0.18em] text-slate-500"
+        >
           Next 7 Days
         </span>
         <div class="flex-1 h-px bg-slate-300"></div>
@@ -216,18 +230,22 @@ function onPlanError(message: string): void {
                     <template v-if="isToday(date)">
                       <span
                         class="font-spaceGrotesk font-black text-slate-900 uppercase text-base tracking-tight leading-none"
-                      >{{ dayLabel(date) }}</span>
+                        >{{ dayLabel(date) }}</span
+                      >
                       <span
                         class="font-tomorrow text-[10px] font-black tracking-wide mt-0.5 bg-slate-900 text-stone-50 px-2 py-0.5 rounded-full"
-                      >TODAY</span>
+                        >TODAY</span
+                      >
                     </template>
                     <template v-else>
                       <span
                         class="font-spaceGrotesk font-black text-slate-900 uppercase text-base tracking-tight leading-none"
-                      >{{ dayLabel(date) }}</span>
+                        >{{ dayLabel(date) }}</span
+                      >
                       <span
                         class="font-tomorrow text-[10px] text-slate-700 font-bold tracking-wide mt-0.5"
-                      >{{ formatDate(date) }}</span>
+                        >{{ formatDate(date) }}</span
+                      >
                     </template>
                   </div>
                 </th>
@@ -251,7 +269,8 @@ function onPlanError(message: string): void {
                     }}</span>
                     <span
                       class="font-spaceGrotesk font-black text-[9px] uppercase tracking-widest text-slate-600"
-                    >{{ meal }}</span>
+                      >{{ meal }}</span
+                    >
                   </div>
                 </td>
 
@@ -305,15 +324,18 @@ function onPlanError(message: string): void {
                       <span
                         v-if="getMeal(dayIdx, meal)?.protein"
                         class="text-violet-700 bg-violet-100 border border-violet-300 px-1.5 py-0.5 rounded-full"
-                      >{{ getMeal(dayIdx, meal)?.protein }}g P</span>
+                        >{{ getMeal(dayIdx, meal)?.protein }}g P</span
+                      >
                       <span
                         v-if="getMeal(dayIdx, meal)?.carbs"
                         class="text-sky-700 bg-sky-100 border border-sky-300 px-1.5 py-0.5 rounded-full"
-                      >{{ getMeal(dayIdx, meal)?.carbs }}g C</span>
+                        >{{ getMeal(dayIdx, meal)?.carbs }}g C</span
+                      >
                       <span
                         v-if="getMeal(dayIdx, meal)?.fat"
                         class="text-rose-700 bg-rose-100 border border-rose-300 px-1.5 py-0.5 rounded-full"
-                      >{{ getMeal(dayIdx, meal)?.fat }}g F</span>
+                        >{{ getMeal(dayIdx, meal)?.fat }}g F</span
+                      >
                     </div>
 
                     <!-- Calories + prep -->
@@ -321,11 +343,13 @@ function onPlanError(message: string): void {
                       <span
                         v-if="getMeal(dayIdx, meal)?.calories"
                         class="font-tomorrow text-[9px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 rounded-full"
-                      >{{ getMeal(dayIdx, meal)?.calories }} kcal</span>
+                        >{{ getMeal(dayIdx, meal)?.calories }} kcal</span
+                      >
                       <span
                         v-if="getMeal(dayIdx, meal)?.prepTimeMinutes"
                         class="font-tomorrow text-[9px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded-full"
-                      >{{ getMeal(dayIdx, meal)?.prepTimeMinutes }}min</span>
+                        >{{ getMeal(dayIdx, meal)?.prepTimeMinutes }}min</span
+                      >
                     </div>
                   </div>
                 </td>
@@ -341,7 +365,9 @@ function onPlanError(message: string): void {
 <style scoped>
 .drawer-enter-active,
 .drawer-leave-active {
-  transition: max-height 0.35s ease, opacity 0.25s ease;
+  transition:
+    max-height 0.35s ease,
+    opacity 0.25s ease;
   overflow: hidden;
   max-height: 600px;
 }
@@ -363,13 +389,17 @@ table {
   background: #ffffff;
 }
 
-.row-label-header { background: #fafaf9; }
+.row-label-header {
+  background: #fafaf9;
+}
 
 .day-header {
   border-bottom: 4px solid #0f172a;
   border-right: 2px solid #0f172a;
 }
-.day-header:last-child { border-right: 0; }
+.day-header:last-child {
+  border-right: 0;
+}
 
 .today-header {
   outline: 3px solid #0f172a;
@@ -390,6 +420,10 @@ table {
   transition: background 0.15s ease;
 }
 
-.meal-row:not(:last-child) td { border-bottom: 2px solid #e2e8f0; }
-.meal-row:last-child td { border-bottom: 0; }
+.meal-row:not(:last-child) td {
+  border-bottom: 2px solid #e2e8f0;
+}
+.meal-row:last-child td {
+  border-bottom: 0;
+}
 </style>
