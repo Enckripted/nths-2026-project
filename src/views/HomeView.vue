@@ -8,7 +8,7 @@ const howItWorks = [
   {
     num: '01',
     title: 'Tell us about yourself',
-    desc: 'Complete a quick 3-step survey â€” your goals, cooking preferences, and dietary needs.',
+    desc: 'Complete a quick 3-step survey with your goals, cooking preferences, and dietary needs.',
     accent: 'bg-emerald-300',
     border: 'border-emerald-900',
     shadow: 'shadow-[6px_6px_0px_#064e3b]',
@@ -68,7 +68,7 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
           />
           <div class="flex flex-col md:flex-row md:items-end gap-4 md:gap-12 -mt-[0.05em] z-[5] w-full">
             <span class="block self-start md:self-e6nd font-black mix-organic text-emerald-500 drop-shadow-lg leading-none">CO.</span>
-            <span class="font-tomorrow font-bold text-[54px] text-slate-800 whitespace-nowrap self-start md:self-end mt-6 md:mt-0 tracking-tight leading-none bg-yellow-300/80 px-6 h-[72px] inline-flex items-center rounded-lg border-2 border-slate-900 md:-translate-y-[.7em]">
+            <span class="font-tomorrow font-bold text-[44px] text-slate-800 whitespace-nowrap self-start md:self-end mt-6 md:mt-0 tracking-tight leading-none bg-yellow-300/80 px-6 h-[72px] inline-flex items-center rounded-lg border-2 border-slate-900 md:-translate-y-[.7em]">
               { Simple. Quick. Efficient. }
             </span>
           </div>
@@ -173,7 +173,7 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
         to="/profile"
         class="brutalist-btn bg-slate-900 text-[#eff9e5] font-spaceGrotesk font-black uppercase tracking-widest py-6 px-12 text-2xl md:text-3xl rounded-2xl hover:bg-slate-800 inline-block shrink-0 focus:ring-4 focus:ring-slate-300"
       >
-        Start for Free â†’
+        Start for Free
       </RouterLink>
     </section>
 
@@ -183,7 +183,7 @@ onUnmounted(() => window.removeEventListener('scroll', scrollHandler));
         EASEY PREP <span class="text-emerald-400">CO.</span>
       </span>
       <span class="font-tomorrow text-sm text-slate-500">
-        Â© 2026 EASEY PREP CO. â€” AI-powered meal planning.
+        2026 EASEY PREP CO. AI-powered meal planning.
       </span>
     </footer>
   </div>
